@@ -35,7 +35,7 @@
 # create volume dirs for persistence
 mkdir -p ./volume-data/database ./volume-data/media 
 
-# adjust volume ownership to www-data
+# adjust volume ownership to www-data (33)
 sudo chown -R 33:33 volume-data/*
 
 # spawn the stack
