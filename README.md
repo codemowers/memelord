@@ -45,6 +45,9 @@ docker compose -f docker/docker-compose.yml up -d
 docker compose -f docker/docker-compose.yml logs -f
 ````
 
+> [!TIP]
+> An official Unraid app exists in the store. See [wiki](https://github.com/l4rm4nd/MemeLord/wiki/01-%E2%80%90-Installation#unraid-installation).
+
 ## 🌏 Environment Variables
 
 MemeLord takes various environment variables to configure `settings.py`:
