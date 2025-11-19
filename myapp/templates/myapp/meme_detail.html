@@ -1,0 +1,407 @@
+{% extends "myapp/base.html" %}
+{% load static %}
+
+{% block title %}{{ media.title|default:"Meme" }}{% endblock %}
+{% block content %}
+
+{# Row 1: Meme card full width #}
+<div class="row">
+  <div class="col-12 mb-4">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          {% if request.user == media.uploader or request.user.is_superuser %}
+            <!-- Title display mode -->
+            <div id="title-display" class="d-flex align-items-center gap-2">
+              <h1 class="h5 mb-0">{{ media.title|default:"Untitled meme" }}</h1>
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="title-edit-toggle">
+                Edit
+              </button>
+            </div>
+
+            <!-- Title edit mode -->
+            <form method="post"
+                  action="{% url 'myapp:meme_update_title' media.pk %}"
+                  id="title-edit-form"
+                  class="d-none d-flex align-items-center gap-2 mt-1">
+              {% csrf_token %}
+              {{ title_form.title }}
+              <button type="submit" class="btn btn-sm btn-outline-primary">
+                Save
+              </button>
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="title-edit-cancel">
+                Cancel
+              </button>
+            </form>
+          {% else %}
+            <h1 class="h5 mb-0">{{ media.title|default:"Untitled meme" }}</h1>
+          {% endif %}
+          <small class="text-muted d-block mt-1">
+            by {{ media.uploader }} · {{ media.created_at|date:"Y-m-d H:i" }}
+          </small>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          {# Download is shown to everyone who can see the meme #}
+          <a href="{{ media.file.url }}"
+             class="btn btn-sm btn-outline-secondary"
+             download>
+            Download
+          </a>
+
+          {% if request.user == media.uploader or request.user.is_superuser %}
+            <form method="post" action="{% url 'myapp:meme_delete' media.pk %}">
+              {% csrf_token %}
+              <button type="submit"
+                      class="btn btn-sm btn-outline-danger"
+                      onclick="return confirm('Delete this meme permanently?');">
+                Delete
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card-body meme-media-body text-center">
+        {% if media.media_type == 'image' %}
+          <img src="{{ media.file.url }}"
+               class="img-fluid rounded d-block mx-auto"
+               style="max-height: 70vh; object-fit: contain;"
+               alt="{{ media.title|default:'Meme' }}">
+        {% else %}
+          <video class="d-block mx-auto"
+                 style="max-height: 70vh; max-width: 100%;"
+                 controls
+                 preload="metadata">
+            <source src="{{ media.file.url }}">
+            Your browser does not support the video tag.
+          </video>
+        {% endif %}
+      </div>
+
+      <div class="card-footer">
+        <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
+          <div>
+            {% for tag in media.tags.all %}
+              <span class="badge bg-secondary me-1 mb-1">#{{ tag.name }}</span>
+            {% empty %}
+              <span class="text-muted small">No tags assigned</span>
+            {% endfor %}
+          </div>
+
+          {% if request.user == media.uploader or request.user.is_superuser %}
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    id="tags-edit-toggle">
+              Edit tags
+            </button>
+          {% endif %}
+        </div>
+
+        {% if request.user == media.uploader or request.user.is_superuser %}
+          <!-- Tags edit form -->
+          <form method="post"
+                action="{% url 'myapp:meme_update_tags' media.pk %}"
+                id="tags-edit-form"
+                class="d-none">
+            {% csrf_token %}
+            <div class="mb-2 position-relative">
+              {{ tag_form.tags_input }}
+              <div id="tag-suggestions-detail"
+                   class="position-absolute w-100 bg-body border border-secondary-subtle mt-1 rounded-3 shadow-sm d-none"
+                   style="z-index: 1000;"></div>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-sm btn-outline-primary">
+                Save tags
+              </button>
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="tags-edit-cancel">
+                Cancel
+              </button>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Separate tags with comma. Suggestions appear while typing.
+            </small>
+          </form>
+        {% endif %}
+
+        {% if media.album %}
+          <small class="text-muted d-block mt-2">
+            Album: {{ media.album.title }}{% if media.album.is_private %} (private){% endif %}
+          </small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Row 2: Comments below meme, two columns on large screens #}
+<div class="row">
+  <div class="col-lg-7 mb-4">
+    <div id="comments" class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>
+          Comments (<span id="comments-count">{{ comments_page.paginator.count }}</span>)
+        </strong>
+        {% if comments_page.paginator.num_pages > 1 %}
+          <small class="text-muted" id="comments-page-info">
+            Page {{ comments_page.number }} / {{ comments_page.paginator.num_pages }}
+          </small>
+        {% endif %}
+      </div>     
+
+      <div id="comments-wrapper"
+            data-comments-url="{% url 'myapp:meme_comments' media.pk %}">
+        {% include "myapp/partials/comments_block.html" %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <strong>Add a comment</strong>
+      </div>
+      <div class="card-body">
+        <form method="post"
+        id="comment-form"
+        action="{% url 'myapp:meme_add_comment' media.pk %}">
+          {% csrf_token %}
+          {{ comment_form.text }}
+          {% if comment_form.text.errors %}
+            <div class="invalid-feedback d-block">
+              {{ comment_form.text.errors|striptags }}
+            </div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-sm mt-3">Add a comment</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // Title edit toggle
+    const displayEl = document.getElementById("title-display");
+    const editFormEl = document.getElementById("title-edit-form");
+    const editToggleBtn = document.getElementById("title-edit-toggle");
+    const editCancelBtn = document.getElementById("title-edit-cancel");
+
+    if (editToggleBtn && displayEl && editFormEl && editCancelBtn) {
+      editToggleBtn.addEventListener("click", function() {
+        displayEl.classList.add("d-none");
+        editFormEl.classList.remove("d-none");
+        const input = editFormEl.querySelector("input[name='title']");
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+
+      editCancelBtn.addEventListener("click", function() {
+        editFormEl.classList.add("d-none");
+        displayEl.classList.remove("d-none");
+      });
+    }
+
+    // Tags edit toggle + suggestions
+    const tagsEditToggle = document.getElementById("tags-edit-toggle");
+    const tagsEditForm = document.getElementById("tags-edit-form");
+    const tagsEditCancel = document.getElementById("tags-edit-cancel");
+    const tagsInput = tagsEditForm ? tagsEditForm.querySelector("input[name='tags_input']") : null;
+    const suggestionsBox = document.getElementById("tag-suggestions-detail");
+
+    if (tagsInput) {
+      tagsInput.setAttribute("autocomplete", "off");
+      tagsInput.setAttribute("autocorrect", "off");
+      tagsInput.setAttribute("autocapitalize", "off");
+      tagsInput.setAttribute("spellcheck", "false");
+    }
+
+    if (tagsEditToggle && tagsEditForm && tagsEditCancel) {
+      tagsEditToggle.addEventListener("click", function() {
+        tagsEditForm.classList.remove("d-none");
+      });
+
+      tagsEditCancel.addEventListener("click", function() {
+        tagsEditForm.classList.add("d-none");
+        if (suggestionsBox) {
+          suggestionsBox.classList.add("d-none");
+          suggestionsBox.innerHTML = "";
+        }
+      });
+    }
+
+    let suggestionTimeout = null;
+
+    function fetchSuggestions(query) {
+      if (!suggestionsBox) return;
+      if (!query) {
+        suggestionsBox.classList.add("d-none");
+        suggestionsBox.innerHTML = "";
+        return;
+      }
+
+      const url = "{% url 'myapp:tag_suggestions' %}?q=" + encodeURIComponent(query);
+
+      fetch(url, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const results = data.results || [];
+        if (!results.length) {
+          suggestionsBox.classList.add("d-none");
+          suggestionsBox.innerHTML = "";
+          return;
+        }
+
+        suggestionsBox.innerHTML = "";
+        results.forEach(tag => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn btn-sm btn-outline-secondary m-1";
+          btn.textContent = "#" + tag.name;
+          btn.addEventListener("click", function() {
+            let current = tagsInput.value.trim();
+            if (current && !current.endsWith(",")) {
+              current += ", ";
+            } else if (current === "") {
+              current = "";
+            }
+            tagsInput.value = current + tag.name;
+            tagsInput.focus();
+          });
+          suggestionsBox.appendChild(btn);
+        });
+        suggestionsBox.classList.remove("d-none");
+      })
+      .catch(() => {
+        suggestionsBox.classList.add("d-none");
+      });
+    }
+
+    if (tagsInput) {
+      tagsInput.addEventListener("input", function() {
+        const value = tagsInput.value;
+        const lastPart = value.split(/[,#;]/).pop().trim();
+
+        if (suggestionTimeout) {
+          clearTimeout(suggestionTimeout);
+        }
+        suggestionTimeout = setTimeout(() => {
+          fetchSuggestions(lastPart);
+        }, 200);
+      });
+    }
+
+    document.addEventListener("click", function(e) {
+      if (suggestionsBox && !suggestionsBox.contains(e.target) && e.target !== tagsInput) {
+        suggestionsBox.classList.add("d-none");
+      }
+    });
+  })();
+</script>
+
+<script>
+  (function() {
+    const wrapper = document.getElementById("comments-wrapper");
+    if (!wrapper) return;
+
+    const commentsUrl = wrapper.dataset.commentsUrl;
+
+    function updateLocationCpage(page) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("cpage", page);
+      const newUrl = url.pathname + (url.search ? url.search : "") + url.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+
+    wrapper.addEventListener("click", function(e) {
+      const link = e.target.closest(".comment-page-link[data-comments-page]");
+      if (!link) return;
+
+      e.preventDefault();
+      const page = link.dataset.commentsPage;
+      if (!page) return;
+
+      const url = new URL(commentsUrl, window.location.origin);
+      url.searchParams.set("cpage", page);
+
+      fetch(url.toString(), {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.html) return;
+        wrapper.innerHTML = data.html;
+        updateLocationCpage(data.page || page);
+      })
+      .catch(err => {
+        console.error("Error loading comments:", err);
+      });
+    });
+  })();
+</script>
+<script>
+  (function() {
+    const form = document.getElementById("comment-form");
+    const wrapper = document.getElementById("comments-wrapper");
+    if (!form || !wrapper) return;
+
+    const countEl = document.getElementById("comments-count");
+    const pageInfoEl = document.getElementById("comments-page-info");
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.ok) {
+          console.error("Validation error:", data.errors);
+          return;
+        }
+
+        // Replace comments list
+        wrapper.innerHTML = data.html;
+
+        // Update header count / page info
+        if (countEl && typeof data.count !== "undefined") {
+          countEl.textContent = data.count;
+        }
+        if (pageInfoEl && data.page && data.num_pages) {
+          pageInfoEl.textContent = `Page ${data.page} / ${data.num_pages}`;
+        }
+
+        // Clear textarea
+        const textarea = form.querySelector("textarea");
+        if (textarea) {
+          textarea.value = "";
+        }
+      })
+      .catch(err => {
+        console.error("Error posting comment:", err);
+      });
+    });
+  })();
+</script>
+
+{% endblock %}

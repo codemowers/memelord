@@ -1,0 +1,58 @@
+{# Just the scrollable list + footer, no outer card wrapper #}
+
+<div class="card-body" style="max-height: 400px; overflow-y: auto;">
+  {% for comment in comments_page %}
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <strong>{{ comment.author }}</strong>
+        <small class="text-muted">
+          {{ comment.created_at|date:"Y-m-d H:i" }}
+        </small>
+      </div>
+      <p class="mb-1">{{ comment.text|linebreaksbr }}</p>
+
+      {% if request.user == comment.author or request.user.is_superuser %}
+        <form method="post" action="{% url 'myapp:comment_delete' comment.pk %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="btn btn-sm btn-link text-danger p-0"
+                  onclick="return confirm('Delete this comment?');">
+            Delete
+          </button>
+        </form>
+      {% endif %}
+      <hr class="mt-2 mb-2">
+    </div>
+  {% empty %}
+    <p class="text-muted mb-0">No comments yet. Start the discussion!</p>
+  {% endfor %}
+</div>
+
+{% if comments_page.paginator.num_pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    {% if comments_page.has_previous %}
+      <a href="?cpage={{ comments_page.previous_page_number }}#comments"
+         class="btn btn-sm btn-outline-secondary comment-page-link"
+         data-comments-page="{{ comments_page.previous_page_number }}">
+        Previous
+      </a>
+    {% else %}
+      <span class="btn btn-sm btn-outline-secondary disabled">Previous</span>
+    {% endif %}
+
+    <span class="text-muted small">
+      {{ comments_page.start_index }}–{{ comments_page.end_index }}
+      of {{ comments_page.paginator.count }}
+    </span>
+
+    {% if comments_page.has_next %}
+      <a href="?cpage={{ comments_page.next_page_number }}#comments"
+         class="btn btn-sm btn-outline-secondary comment-page-link"
+         data-comments-page="{{ comments_page.next_page_number }}">
+        Next
+      </a>
+    {% else %}
+      <span class="btn btn-sm btn-outline-secondary disabled">Next</span>
+    {% endif %}
+  </div>
+{% endif %}

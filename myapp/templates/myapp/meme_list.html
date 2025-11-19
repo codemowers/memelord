@@ -1,0 +1,419 @@
+{% extends "myapp/base.html" %}
+{% load static %}
+
+{% block title %}Meme Board{% endblock %}
+
+{% block content %}
+<div class="meme-toolbar-sticky d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h3 mb-0 flex-grow-0">
+      {% if random_mode %}
+        Randomized Feed
+      {% else %}
+        Public Feed
+      {% endif %}
+    </h1>
+
+  <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end">
+    <!-- Tag search, smaller + max width -->
+    <div class="position-relative" style="max-width: 260px; width: 100%;">
+      <input type="text"
+             id="tag-filter-input"
+             class="form-control form-control-sm"
+             placeholder="Filter by tag">
+        <div id="tag-filter-suggestions"
+             class="position-absolute w-100 bg-body border border-secondary-subtle mt-1 rounded-3 shadow-sm d-none"
+             style="z-index: 1000;">
+        </div>
+    </div>
+
+    <a href="{% url 'myapp:meme_upload' %}" class="btn btn-primary btn-sm">
+      Upload
+    </a>
+  </div>
+</div>
+
+{% if current_tag %}
+  <div class="mb-3">
+    <span class="badge bg-primary">
+      Filter: #{{ current_tag.name }}
+    </span>
+    <a href="{% url 'myapp:meme_list' %}" class="btn btn-sm btn-outline-secondary ms-2">
+      Clear
+    </a>
+  </div>
+{% endif %}
+
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-5 g-4" id="meme-grid">
+  {% include "myapp/partials/meme_grid.html" %}
+</div>
+
+<!-- Fallback pagination for no-JS -->
+<nav aria-label="Page navigation" class="mt-4 d-none" id="pagination-fallback">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">Previous</span></li>
+    {% endif %}
+
+    <li class="page-item disabled">
+      <span class="page-link">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+    </li>
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">Next</span></li>
+    {% endif %}
+  </ul>
+</nav>
+
+<div id="infinite-loader" class="text-center my-4 d-none">
+  <div class="spinner-border text-secondary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+<div id="scroll-sentinel" class="my-4"></div>
+
+<div id="meme-quick-view"
+     class="d-none position-fixed top-0 start-0 w-100 h-100"
+     style="z-index: 1050;">
+  <div class="position-absolute top-50 start-50 translate-middle"
+       style="max-width: 90vw; max-height: 90vh;">
+    <div id="meme-quick-content" class="text-center"></div>
+    <div class="text-center text-light small mt-2" id="meme-quick-meta"></div>
+  </div>
+
+  <!-- Close button -->
+  <button type="button"
+          id="meme-quick-close"
+          class="btn btn-sm btn-light position-absolute top-0 end-0 m-3">
+    ✕
+  </button>
+
+  <!-- Prev / Next arrows -->
+  <button type="button"
+          id="meme-quick-prev"
+          class="btn btn-light btn-sm position-absolute top-50 start-0 translate-middle-y ms-2">
+    ‹
+  </button>
+  <button type="button"
+          id="meme-quick-next"
+          class="btn btn-light btn-sm position-absolute top-50 end-0 translate-middle-y me-2">
+    ›
+  </button>
+</div>
+
+
+<script>
+    // Infinite scroll
+    (function() {
+      const grid = document.getElementById("meme-grid");
+      const sentinel = document.getElementById("scroll-sentinel");
+      const loader = document.getElementById("infinite-loader");
+      const paginationFallback = document.getElementById("pagination-fallback");
+  
+      if (!grid || !sentinel) {
+        return;
+      }
+  
+      if (paginationFallback) {
+        paginationFallback.classList.add("d-none");
+      }
+  
+      let nextPage = {% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}null{% endif %};
+      let loading = false;
+  
+      function loadMore() {
+        if (!nextPage || loading) {
+          return;
+        }
+        loading = true;
+        if (loader) {
+          loader.classList.remove("d-none");
+        }
+  
+        const url = new URL(window.location.href);
+        url.searchParams.set("page", nextPage);
+  
+        fetch(url.toString(), {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.html) {
+            grid.insertAdjacentHTML("beforeend", data.html);
+          }
+  
+          if (data.has_next) {
+            nextPage = data.next_page_number;
+          } else {
+            nextPage = null;
+            if (observer) {
+              observer.disconnect();
+            }
+          }
+        })
+        .catch(err => {
+          console.error("Error loading more memes:", err);
+        })
+        .finally(() => {
+          loading = false;
+          if (loader) {
+            loader.classList.add("d-none");
+          }
+        });
+      }
+  
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            loadMore();
+          }
+        });
+      }, {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0
+      });
+  
+      if (nextPage) {
+        observer.observe(sentinel);
+      }
+    })();
+  
+    // Tag search & suggestions with "popular tags" on focus
+    (function() {
+      const input = document.getElementById("tag-filter-input");
+      const box = document.getElementById("tag-filter-suggestions");
+      if (!input || !box) return;
+  
+      let timeout = null;
+  
+      function renderSuggestions(results) {
+        if (!results.length) {
+          box.classList.add("d-none");
+          box.innerHTML = "";
+          return;
+        }
+  
+        box.innerHTML = "";
+        results.forEach(tag => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn btn-sm btn-outline-secondary m-1";
+          btn.textContent = "#" + tag.name;
+          btn.addEventListener("click", function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set("tag", tag.slug);
+            url.searchParams.delete("page");
+            window.location.href = url.toString();
+          });
+          box.appendChild(btn);
+        });
+        box.classList.remove("d-none");
+      }
+  
+      function fetchSuggestions(query) {
+        const url = "{% url 'myapp:tag_suggestions' %}?q=" + encodeURIComponent(query || "");
+  
+        fetch(url, {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        })
+        .then(res => res.json())
+        .then(data => {
+          renderSuggestions(data.results || []);
+        })
+        .catch(() => {
+          box.classList.add("d-none");
+        });
+      }
+  
+      input.addEventListener("input", function() {
+        const value = input.value.trim();
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => fetchSuggestions(value), 200);
+      });
+  
+      input.addEventListener("focus", function() {
+        if (!input.value.trim()) {
+          // empty query = "popular tags" on backend
+          fetchSuggestions("");
+        }
+      });
+  
+      document.addEventListener("click", function(e) {
+        if (!box.contains(e.target) && e.target !== input) {
+          box.classList.add("d-none");
+        }
+      });
+    })();
+  
+    // Quick view overlay with prev/next navigation
+    (function() {
+      const overlay   = document.getElementById("meme-quick-view");
+      const content   = document.getElementById("meme-quick-content");
+      const meta      = document.getElementById("meme-quick-meta");
+      const btnClose  = document.getElementById("meme-quick-close");
+      const btnPrev   = document.getElementById("meme-quick-prev");
+      const btnNext   = document.getElementById("meme-quick-next");
+  
+      if (!overlay || !content || !meta) {
+        return;
+      }
+   
+      let items = [];
+      let currentIndex = -1;
+  
+      function collectItems() {
+        // all thumbnails currently in DOM, respecting order, filters, random mode, etc.
+        items = Array.from(document.querySelectorAll("[data-meme-open]"));
+      }
+  
+      function renderCurrent() {
+        if (currentIndex < 0 || currentIndex >= items.length) {
+          return;
+        }
+  
+        const el        = items[currentIndex];
+        const type      = el.dataset.mediaType || "image";
+        const url       = el.dataset.fullUrl;
+        const title     = el.dataset.title || "Meme";
+        const uploader  = el.dataset.uploader || "";
+        const created   = el.dataset.created || "";
+        const detailUrl = el.dataset.detailUrl || "#";
+  
+        content.innerHTML = "";
+  
+        if (type === "video") {
+          const video = document.createElement("video");
+          video.className = "w-100 h-100";
+          video.controls = true;
+          video.autoplay = true;
+          video.style.maxHeight = "80vh";
+          video.style.boxShadow = "0 0 20px rgba(0,0,0,.6)";
+  
+          const source = document.createElement("source");
+          source.src = url;
+          video.appendChild(source);
+  
+          content.appendChild(video);
+        } else {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = title;
+          img.className = "img-fluid rounded";
+          img.style.maxHeight = "80vh";
+          img.style.boxShadow = "0 0 20px rgba(0,0,0,.6)";
+          content.appendChild(img);
+        }
+  
+        meta.innerHTML = `
+          <strong>${title}</strong><br>
+          <span class="small">by ${uploader} · ${created}</span><br>
+          <a href="${detailUrl}" class="link-light text-decoration-underline small">Open detail view</a>
+        `;
+  
+        overlay.classList.remove("d-none");
+  
+        btnPrev.disabled = currentIndex <= 0;
+        btnNext.disabled = currentIndex >= items.length - 1;
+      }
+  
+      function openFromElement(el) {
+        collectItems();
+        currentIndex = items.indexOf(el);
+        if (currentIndex === -1) {
+          return;
+        }
+        renderCurrent();
+      }
+  
+      function closeOverlay() {
+        overlay.classList.add("d-none");
+        content.innerHTML = "";
+      }
+  
+      function goPrev() {
+        if (currentIndex > 0) {
+          currentIndex -= 1;
+          renderCurrent();
+        }
+      }
+  
+      function goNext() {
+        if (currentIndex < items.length - 1) {
+          currentIndex += 1;
+          renderCurrent();
+        }
+      }
+  
+      // Delegate click on thumbnails
+      document.addEventListener("click", function(e) {
+        const target = e.target.closest("[data-meme-open]");
+        if (!target) {
+          return;
+        }
+        e.preventDefault();
+        openFromElement(target);
+      });
+  
+      if (btnClose) {
+        btnClose.addEventListener("click", function() {
+          closeOverlay();
+        });
+      }
+  
+      if (btnPrev) {
+        btnPrev.addEventListener("click", function() {
+          goPrev();
+        });
+      }
+  
+      if (btnNext) {
+        btnNext.addEventListener("click", function() {
+          goNext();
+        });
+      }
+  
+      // Keyboard: ESC closes, ArrowLeft/ArrowRight navigate
+      document.addEventListener("keydown", function(e) {
+        if (overlay.classList.contains("d-none")) {
+          return; // ignore when overlay not visible
+        }
+  
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeOverlay();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          goPrev();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          goNext();
+        }
+      });
+  
+      // Click outside content closes overlay
+      overlay.addEventListener("click", function(e) {
+        if (e.target === overlay) {
+          closeOverlay();
+        }
+      });
+    })();
+  </script>
+  
+  
+{% endblock %}
