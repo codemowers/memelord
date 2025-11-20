@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/l4rm4nd/MemeLord/compare/v1.0.3...v1.0.4) (2025-11-20)
+
+
+### Bug Fixes
+
+* multi-arch builds ([9f42f5c](https://github.com/l4rm4nd/MemeLord/commit/9f42f5c37fbc52a0c0fc96cdf94952afd59d2b9c))
+
 ## [1.0.3](https://github.com/l4rm4nd/MemeLord/compare/v1.0.2...v1.0.3) (2025-11-20)
 
 
