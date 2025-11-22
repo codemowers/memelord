@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/l4rm4nd/MemeLord/compare/v1.0.7...v1.0.8) (2025-11-22)
+
+
+### Bug Fixes
+
+* scaling issue ([09c9946](https://github.com/l4rm4nd/MemeLord/commit/09c99462fc672c198ebdf42768167abf3d32fbf6))
+
 ## [1.0.7](https://github.com/l4rm4nd/MemeLord/compare/v1.0.6...v1.0.7) (2025-11-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * multi-arch builds ([9f42f5c](https://github.com/l4rm4nd/MemeLord/commit/9f42f5c37fbc52a0c0fc96cdf94952afd59d2b9c))
-
-## [1.0.3](https://github.com/l4rm4nd/MemeLord/compare/v1.0.2...v1.0.3) (2025-11-20)
-
-
-### Bug Fixes
-
-* build multi-arch images ([d5cba3f](https://github.com/l4rm4nd/MemeLord/commit/d5cba3f3013843870790dd612a5d1d315e29496c))
 
