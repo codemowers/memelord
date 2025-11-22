@@ -81,35 +81,268 @@
 </div>
 <div id="scroll-sentinel" class="my-4"></div>
 
-<div id="meme-quick-view"
-     class="d-none position-fixed top-0 start-0 w-100 h-100"
-     style="z-index: 1050;">
-  <div class="position-absolute top-50 start-50 translate-middle"
-       style="max-width: 90vw; max-height: 90vh;">
-    <div id="meme-quick-content" class="text-center"></div>
-    <div class="text-center text-light small mt-2" id="meme-quick-meta"></div>
+<!-- Modern Lightbox Overlay -->
+<div id="meme-lightbox" class="lightbox-overlay">
+  <div class="lightbox-container">
+    <!-- Close button -->
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <!-- Navigation zones -->
+    <div class="lightbox-nav-left" id="lightbox-nav-left" title="Previous (←)"></div>
+    <div class="lightbox-nav-right" id="lightbox-nav-right" title="Next (→)"></div>
+
+    <!-- Content area -->
+    <div class="lightbox-content" id="lightbox-content">
+      <div class="lightbox-media-container" id="lightbox-media"></div>
+    </div>
+
+    <!-- Bottom info bar -->
+    <div class="lightbox-info" id="lightbox-info">
+      <div class="lightbox-title" id="lightbox-title"></div>
+      <div class="lightbox-meta" id="lightbox-meta"></div>
+    </div>
+
+    <!-- Counter -->
+    <div class="lightbox-counter" id="lightbox-counter"></div>
   </div>
-
-  <!-- Close button -->
-  <button type="button"
-          id="meme-quick-close"
-          class="btn btn-sm btn-light position-absolute top-0 end-0 m-3">
-    ✕
-  </button>
-
-  <!-- Prev / Next arrows -->
-  <button type="button"
-          id="meme-quick-prev"
-          class="btn btn-light btn-sm position-absolute top-50 start-0 translate-middle-y ms-2">
-    ‹
-  </button>
-  <button type="button"
-          id="meme-quick-next"
-          class="btn btn-light btn-sm position-absolute top-50 end-0 translate-middle-y me-2">
-    ›
-  </button>
 </div>
 
+<style>
+  .lightbox-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .lightbox-overlay.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .lightbox-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+  }
+
+  .lightbox-nav-left,
+  .lightbox-nav-right {
+    position: absolute;
+    top: 0;
+    bottom: 80px;
+    width: 30%;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s ease;
+  }
+
+  .lightbox-nav-left {
+    left: 0;
+    justify-content: flex-start;
+    padding-left: 20px;
+  }
+
+  .lightbox-nav-right {
+    right: 0;
+    justify-content: flex-end;
+    padding-right: 20px;
+  }
+
+  .lightbox-nav-left:hover,
+  .lightbox-nav-right:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .lightbox-nav-left::before,
+  .lightbox-nav-right::before {
+    content: '';
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 24px;
+    color: white;
+  }
+
+  .lightbox-nav-left:hover::before,
+  .lightbox-nav-right:hover::before {
+    opacity: 1;
+  }
+
+  .lightbox-nav-left::before {
+    content: '‹';
+    line-height: 40px;
+    text-align: center;
+  }
+
+  .lightbox-nav-right::before {
+    content: '›';
+    line-height: 40px;
+    text-align: center;
+  }
+
+  .lightbox-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px 100px;
+    overflow: hidden;
+  }
+
+  .lightbox-media-container {
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-media-container img,
+  .lightbox-media-container video {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .lightbox-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 40px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    color: white;
+    z-index: 10001;
+  }
+
+  .lightbox-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .lightbox-meta {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .lightbox-meta a {
+    color: #6ea8fe;
+    text-decoration: none;
+  }
+
+  .lightbox-meta a:hover {
+    text-decoration: underline;
+  }
+
+  .lightbox-counter {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 10002;
+  }
+
+  /* Loading animation */
+  .lightbox-media-container.loading::after {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 768px) {
+    .lightbox-nav-left,
+    .lightbox-nav-right {
+      width: 25%;
+    }
+
+    .lightbox-info {
+      padding: 15px 20px;
+    }
+
+    .lightbox-title {
+      font-size: 1rem;
+    }
+
+    .lightbox-meta {
+      font-size: 0.8rem;
+    }
+
+    .lightbox-close {
+      top: 10px;
+      right: 10px;
+    }
+  }
+</style>
 
 <script>
     // Infinite scroll
@@ -118,18 +351,18 @@
       const sentinel = document.getElementById("scroll-sentinel");
       const loader = document.getElementById("infinite-loader");
       const paginationFallback = document.getElementById("pagination-fallback");
-  
+
       if (!grid || !sentinel) {
         return;
       }
-  
+
       if (paginationFallback) {
         paginationFallback.classList.add("d-none");
       }
-  
+
       let nextPage = {% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}null{% endif %};
       let loading = false;
-  
+
       function loadMore() {
         if (!nextPage || loading) {
           return;
@@ -138,10 +371,10 @@
         if (loader) {
           loader.classList.remove("d-none");
         }
-  
+
         const url = new URL(window.location.href);
         url.searchParams.set("page", nextPage);
-  
+
         fetch(url.toString(), {
           headers: {
             "X-Requested-With": "XMLHttpRequest"
@@ -152,7 +385,7 @@
           if (data.html) {
             grid.insertAdjacentHTML("beforeend", data.html);
           }
-  
+
           if (data.has_next) {
             nextPage = data.next_page_number;
           } else {
@@ -172,7 +405,7 @@
           }
         });
       }
-  
+
       const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -184,27 +417,27 @@
         rootMargin: "200px",
         threshold: 0
       });
-  
+
       if (nextPage) {
         observer.observe(sentinel);
       }
     })();
-  
-    // Tag search & suggestions with "popular tags" on focus
+
+    // Tag search & suggestions
     (function() {
       const input = document.getElementById("tag-filter-input");
       const box = document.getElementById("tag-filter-suggestions");
       if (!input || !box) return;
-  
+
       let timeout = null;
-  
+
       function renderSuggestions(results) {
         if (!results.length) {
           box.classList.add("d-none");
           box.innerHTML = "";
           return;
         }
-  
+
         box.innerHTML = "";
         results.forEach(tag => {
           const btn = document.createElement("button");
@@ -221,10 +454,10 @@
         });
         box.classList.remove("d-none");
       }
-  
+
       function fetchSuggestions(query) {
         const url = "{% url 'myapp:tag_suggestions' %}?q=" + encodeURIComponent(query || "");
-  
+
         fetch(url, {
           headers: {
             "X-Requested-With": "XMLHttpRequest"
@@ -238,7 +471,7 @@
           box.classList.add("d-none");
         });
       }
-  
+
       input.addEventListener("input", function() {
         const value = input.value.trim();
         if (timeout) {
@@ -246,174 +479,254 @@
         }
         timeout = setTimeout(() => fetchSuggestions(value), 200);
       });
-  
+
       input.addEventListener("focus", function() {
         if (!input.value.trim()) {
-          // empty query = "popular tags" on backend
           fetchSuggestions("");
         }
       });
-  
+
       document.addEventListener("click", function(e) {
         if (!box.contains(e.target) && e.target !== input) {
           box.classList.add("d-none");
         }
       });
     })();
-  
-    // Quick view overlay with prev/next navigation
+
+    // Modern Lightbox
     (function() {
-      const overlay   = document.getElementById("meme-quick-view");
-      const content   = document.getElementById("meme-quick-content");
-      const meta      = document.getElementById("meme-quick-meta");
-      const btnClose  = document.getElementById("meme-quick-close");
-      const btnPrev   = document.getElementById("meme-quick-prev");
-      const btnNext   = document.getElementById("meme-quick-next");
-  
-      if (!overlay || !content || !meta) {
-        return;
-      }
-   
+      const lightbox = document.getElementById("meme-lightbox");
+      const mediaContainer = document.getElementById("lightbox-media");
+      const titleEl = document.getElementById("lightbox-title");
+      const metaEl = document.getElementById("lightbox-meta");
+      const counterEl = document.getElementById("lightbox-counter");
+      const closeBtn = document.getElementById("lightbox-close");
+      const navLeft = document.getElementById("lightbox-nav-left");
+      const navRight = document.getElementById("lightbox-nav-right");
+
+      if (!lightbox) return;
+
       let items = [];
       let currentIndex = -1;
-  
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      function decodeText(text) {
+        if (!text) return "";
+        return text.replace(/\\u[\dA-Fa-f]{4}/g, function(match) {
+          return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+        });
+      }
+
       function collectItems() {
-        // all thumbnails currently in DOM, respecting order, filters, random mode, etc.
         items = Array.from(document.querySelectorAll("[data-meme-open]"));
       }
-  
-      function renderCurrent() {
-        if (currentIndex < 0 || currentIndex >= items.length) {
-          return;
-        }
-  
-        const el        = items[currentIndex];
-        const type      = el.dataset.mediaType || "image";
-        const url       = el.dataset.fullUrl;
-        const title     = el.dataset.title || "Meme";
-        const uploader  = el.dataset.uploader || "";
-        const created   = el.dataset.created || "";
+
+      function showLightbox() {
+        lightbox.style.display = "flex";
+        setTimeout(() => lightbox.classList.add("active"), 10);
+        document.body.style.overflow = "hidden";
+      }
+
+      function hideLightbox() {
+        lightbox.classList.remove("active");
+        setTimeout(() => {
+          lightbox.style.display = "none";
+          document.body.style.overflow = "";
+        }, 300);
+      }
+
+      function renderMedia() {
+        if (currentIndex < 0 || currentIndex >= items.length) return;
+
+        const el = items[currentIndex];
+        const type = el.dataset.mediaType || "image";
+        const url = el.dataset.fullUrl;
+        const title = decodeText(el.dataset.title || "Meme");
+        const uploader = decodeText(el.dataset.uploader || "Unknown");
+        const created = el.dataset.created || "";
         const detailUrl = el.dataset.detailUrl || "#";
-  
-        content.innerHTML = "";
-  
+
+        // Clear previous content
+        mediaContainer.innerHTML = "";
+        mediaContainer.classList.add("loading");
+
+        // Create media element
         if (type === "video") {
           const video = document.createElement("video");
-          video.className = "w-100 h-100";
           video.controls = true;
           video.autoplay = true;
-          video.style.maxHeight = "80vh";
-          video.style.boxShadow = "0 0 20px rgba(0,0,0,.6)";
-  
+
+          video.addEventListener("loadeddata", () => {
+            mediaContainer.classList.remove("loading");
+            scaleMedia(video);
+          });
+
           const source = document.createElement("source");
           source.src = url;
           video.appendChild(source);
-  
-          content.appendChild(video);
+          mediaContainer.appendChild(video);
         } else {
-          const img = document.createElement("img");
+          const img = new Image();
+
+          img.onload = function() {
+            mediaContainer.classList.remove("loading");
+            scaleMedia(img);
+          };
+
+          img.onerror = function() {
+            mediaContainer.classList.remove("loading");
+          };
+
           img.src = url;
           img.alt = title;
-          img.className = "img-fluid rounded";
-          img.style.maxHeight = "80vh";
-          img.style.boxShadow = "0 0 20px rgba(0,0,0,.6)";
-          content.appendChild(img);
+          mediaContainer.appendChild(img);
         }
-  
-        meta.innerHTML = `
-          <strong>${title}</strong><br>
-          <span class="small">by ${uploader} · ${created}</span><br>
-          <a href="${detailUrl}" class="link-light text-decoration-underline small">Open detail view</a>
-        `;
-  
-        overlay.classList.remove("d-none");
-  
-        btnPrev.disabled = currentIndex <= 0;
-        btnNext.disabled = currentIndex >= items.length - 1;
+
+        // Update info
+        titleEl.textContent = title;
+
+        metaEl.innerHTML = "";
+        const uploaderSpan = document.createElement("span");
+        uploaderSpan.textContent = `by ${uploader} · ${created} · `;
+        metaEl.appendChild(uploaderSpan);
+
+        const detailLink = document.createElement("a");
+        detailLink.href = detailUrl;
+        detailLink.textContent = "View details";
+        metaEl.appendChild(detailLink);
+
+        // Update counter
+        counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
+
+        // Update navigation state
+        navLeft.style.display = currentIndex > 0 ? "flex" : "none";
+        navRight.style.display = currentIndex < items.length - 1 ? "flex" : "none";
       }
-  
-      function openFromElement(el) {
+
+      function scaleMedia(media) {
+        // Get viewport dimensions (accounting for padding and info bar)
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight - 200; // Reserve space for info
+
+        let naturalWidth, naturalHeight;
+
+        if (media.tagName === "VIDEO") {
+          naturalWidth = media.videoWidth;
+          naturalHeight = media.videoHeight;
+        } else {
+          naturalWidth = media.naturalWidth;
+          naturalHeight = media.naturalHeight;
+        }
+
+        // Calculate scaling to fill viewport while maintaining aspect ratio
+        const widthScale = (viewportWidth * 0.7) / naturalWidth;
+        const heightScale = (viewportHeight * 0.7) / naturalHeight;
+
+        // Use the larger scale to ensure the image fills the space
+        // but cap at 2x for very small images
+        const scale = Math.min(Math.max(widthScale, heightScale), 2);
+
+        const displayWidth = naturalWidth * scale;
+        const displayHeight = naturalHeight * scale;
+
+        media.style.width = displayWidth + "px";
+        media.style.height = displayHeight + "px";
+      }
+
+      function openLightbox(el) {
         collectItems();
         currentIndex = items.indexOf(el);
-        if (currentIndex === -1) {
-          return;
-        }
-        renderCurrent();
+        if (currentIndex === -1) return;
+
+        showLightbox();
+        renderMedia();
       }
-  
-      function closeOverlay() {
-        overlay.classList.add("d-none");
-        content.innerHTML = "";
-      }
-  
-      function goPrev() {
+
+      function goToPrevious() {
         if (currentIndex > 0) {
-          currentIndex -= 1;
-          renderCurrent();
+          currentIndex--;
+          renderMedia();
         }
       }
-  
-      function goNext() {
+
+      function goToNext() {
         if (currentIndex < items.length - 1) {
-          currentIndex += 1;
-          renderCurrent();
+          currentIndex++;
+          renderMedia();
         }
       }
-  
-      // Delegate click on thumbnails
+
+      // Event listeners
       document.addEventListener("click", function(e) {
         const target = e.target.closest("[data-meme-open]");
-        if (!target) {
-          return;
+        if (target) {
+          e.preventDefault();
+          openLightbox(target);
         }
-        e.preventDefault();
-        openFromElement(target);
       });
-  
-      if (btnClose) {
-        btnClose.addEventListener("click", function() {
-          closeOverlay();
-        });
-      }
-  
-      if (btnPrev) {
-        btnPrev.addEventListener("click", function() {
-          goPrev();
-        });
-      }
-  
-      if (btnNext) {
-        btnNext.addEventListener("click", function() {
-          goNext();
-        });
-      }
-  
-      // Keyboard: ESC closes, ArrowLeft/ArrowRight navigate
+
+      closeBtn.addEventListener("click", hideLightbox);
+
+      navLeft.addEventListener("click", goToPrevious);
+      navRight.addEventListener("click", goToNext);
+
+      // Keyboard navigation
       document.addEventListener("keydown", function(e) {
-        if (overlay.classList.contains("d-none")) {
-          return; // ignore when overlay not visible
-        }
-  
+        if (!lightbox.classList.contains("active")) return;
+
         if (e.key === "Escape") {
           e.preventDefault();
-          closeOverlay();
+          hideLightbox();
         } else if (e.key === "ArrowLeft") {
           e.preventDefault();
-          goPrev();
+          goToPrevious();
         } else if (e.key === "ArrowRight") {
           e.preventDefault();
-          goNext();
+          goToNext();
         }
       });
-  
-      // Click outside content closes overlay
-      overlay.addEventListener("click", function(e) {
-        if (e.target === overlay) {
-          closeOverlay();
+
+      // Touch gestures
+      lightbox.addEventListener("touchstart", function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, false);
+
+      lightbox.addEventListener("touchend", function(e) {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        const minSwipeDistance = 50;
+        if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (deltaX > 0) {
+            goToPrevious();
+          } else {
+            goToNext();
+          }
+        }
+      }, false);
+
+      // Close on background click
+      lightbox.addEventListener("click", function(e) {
+        if (e.target === lightbox || e.target.closest(".lightbox-content")) {
+          hideLightbox();
+        }
+      });
+
+      // Resize handler
+      window.addEventListener("resize", function() {
+        if (lightbox.classList.contains("active")) {
+          const media = mediaContainer.querySelector("img, video");
+          if (media) {
+            scaleMedia(media);
+          }
         }
       });
     })();
   </script>
-  
-  
+
 {% endblock %}
