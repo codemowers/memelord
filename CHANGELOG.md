@@ -1,3 +1,10 @@
+## [1.0.9](https://github.com/l4rm4nd/MemeLord/compare/v1.0.8...v1.0.9) (2025-11-22)
+
+
+### Bug Fixes
+
+* show 2 memes per row on mobile ([53b32fb](https://github.com/l4rm4nd/MemeLord/commit/53b32fba5eb460ea4a1d92802d9bee5baf6f4b75))
+
 ## [1.0.8](https://github.com/l4rm4nd/MemeLord/compare/v1.0.7...v1.0.8) (2025-11-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * tag editing on detail page ([c3eeea3](https://github.com/l4rm4nd/MemeLord/commit/c3eeea3d9c6f4ca13c06942ebc9c5737c90e10a1))
-
-## [1.0.4](https://github.com/l4rm4nd/MemeLord/compare/v1.0.3...v1.0.4) (2025-11-20)
-
-
-### Bug Fixes
-
-* multi-arch builds ([9f42f5c](https://github.com/l4rm4nd/MemeLord/commit/9f42f5c37fbc52a0c0fc96cdf94952afd59d2b9c))
 
