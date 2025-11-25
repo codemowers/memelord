@@ -34,6 +34,6 @@ urlpatterns = [
     ),
 ]
 
-admin.site.site_header = "MemeLoard"
-admin.site.site_title = "MemeLoard"
-admin.site.index_title = "Welcome to MemeLoard"
+admin.site.site_header = "MemeLord"
+admin.site.site_title = "MemeLord"
+admin.site.index_title = "Welcome to MemeLord"
