@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/l4rm4nd/MemeLord/compare/v1.0.10...v1.0.11) (2025-11-25)
+
+
+### Bug Fixes
+
+* name in admin panel; [#1](https://github.com/l4rm4nd/MemeLord/issues/1) ([09437f8](https://github.com/l4rm4nd/MemeLord/commit/09437f850a1cf3b8255b6c6e5ea4f08d7ea7d339))
+
 ## [1.0.10](https://github.com/l4rm4nd/MemeLord/compare/v1.0.9...v1.0.10) (2025-11-25)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * improve details view ([9f30f06](https://github.com/l4rm4nd/MemeLord/commit/9f30f0604b7815fa2858daff7a5da46e4eda357f))
-
-## [1.0.6](https://github.com/l4rm4nd/MemeLord/compare/v1.0.5...v1.0.6) (2025-11-22)
-
-
-### Bug Fixes
-
-* improve quick-view and fix title encoding ([77689aa](https://github.com/l4rm4nd/MemeLord/commit/77689aae12b8921b584c99fb1daef601b56593f5))
 
