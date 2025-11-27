@@ -1,3 +1,10 @@
+## [1.0.12](https://github.com/l4rm4nd/MemeLord/compare/v1.0.11...v1.0.12) (2025-11-27)
+
+
+### Bug Fixes
+
+* allow media backup via django admin ([cd08d3f](https://github.com/l4rm4nd/MemeLord/commit/cd08d3fb0adf4fd32916fb7a48e4098645de65a0))
+
 ## [1.0.11](https://github.com/l4rm4nd/MemeLord/compare/v1.0.10...v1.0.11) (2025-11-25)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * scaling issue ([09c9946](https://github.com/l4rm4nd/MemeLord/commit/09c99462fc672c198ebdf42768167abf3d32fbf6))
-
-## [1.0.7](https://github.com/l4rm4nd/MemeLord/compare/v1.0.6...v1.0.7) (2025-11-22)
-
-
-### Bug Fixes
-
-* improve details view ([9f30f06](https://github.com/l4rm4nd/MemeLord/commit/9f30f0604b7815fa2858daff7a5da46e4eda357f))
 
