@@ -1,3 +1,10 @@
+## [1.0.13](https://github.com/l4rm4nd/MemeLord/compare/v1.0.12...v1.0.13) (2025-11-27)
+
+
+### Bug Fixes
+
+* media backup includes user dirs ([cc84d48](https://github.com/l4rm4nd/MemeLord/commit/cc84d4828d8cc63802b3b26342e86d9bde50ed1b))
+
 ## [1.0.12](https://github.com/l4rm4nd/MemeLord/compare/v1.0.11...v1.0.12) (2025-11-27)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * show 2 memes per row on mobile ([53b32fb](https://github.com/l4rm4nd/MemeLord/commit/53b32fba5eb460ea4a1d92802d9bee5baf6f4b75))
-
-## [1.0.8](https://github.com/l4rm4nd/MemeLord/compare/v1.0.7...v1.0.8) (2025-11-22)
-
-
-### Bug Fixes
-
-* scaling issue ([09c9946](https://github.com/l4rm4nd/MemeLord/commit/09c99462fc672c198ebdf42768167abf3d32fbf6))
 
