@@ -144,6 +144,7 @@ class MediaAdmin(admin.ModelAdmin):
     def download_media_as_zip(self, request, queryset):
         """
         Create a ZIP file containing all selected media files plus a JSON metadata file.
+        Preserves the original folder structure so files can be extracted directly to MEDIA_ROOT.
         """
         # Create an in-memory ZIP file
         zip_buffer = BytesIO()
@@ -151,24 +152,20 @@ class MediaAdmin(admin.ModelAdmin):
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             files_added = 0
             
-            # Add media files
+            # Add media files preserving their original paths
             for media in queryset:
                 if not media.file:
                     continue
                 
                 try:
-                    # Get the file path
+                    # Get the file path on disk
                     file_path = media.file.path
                     
-                    # Create a meaningful filename in the ZIP
-                    # Format: {id}_{title}_{original_filename}
-                    original_filename = os.path.basename(file_path)
-                    safe_title = media.title[:50] if media.title else "untitled"
-                    # Remove special characters from title
-                    safe_title = "".join(c for c in safe_title if c.isalnum() or c in (' ', '-', '_')).strip()
-                    zip_filename = f"media/{media.id}_{safe_title}_{original_filename}"
+                    # Use the same path structure as stored in the database
+                    # e.g., "memes/user_1/filename.jpg"
+                    zip_filename = media.file.name
                     
-                    # Add file to ZIP
+                    # Add file to ZIP with original path structure
                     zip_file.write(file_path, zip_filename)
                     files_added += 1
                     
