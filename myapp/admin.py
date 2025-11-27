@@ -1,6 +1,12 @@
-from django.contrib import admin
+import os
+import zipfile
+from io import BytesIO
+from django.contrib import admin, messages
+from django.core import serializers
 from django.db.models import Count
+from django.http import HttpResponse
 from django.utils.html import format_html
+from django.core.management import call_command
 
 from .models import Tag, Album, Media, Comment
 
@@ -13,7 +19,6 @@ class TagAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # annotate how often a tag is used
         return qs.annotate(_media_count=Count("media_items"))
 
     @admin.display(ordering="_media_count", description="Used in memes")
@@ -77,6 +82,7 @@ class MediaAdmin(admin.ModelAdmin):
     readonly_fields = ("preview", "created_at", "updated_at")
     inlines = [CommentInline]
     list_per_page = 50
+    actions = ["download_media_as_zip"]
 
     fieldsets = (
         (None, {
@@ -95,14 +101,11 @@ class MediaAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # prefetch tags to avoid N+1 in tag_list
         return qs.prefetch_related("tags", "uploader", "album")
 
     @admin.display(description="Preview")
     def thumbnail(self, obj):
-        """
-        Small preview in the list view.
-        """
+        """Small preview in the list view."""
         if not obj.file:
             return "—"
 
@@ -112,7 +115,6 @@ class MediaAdmin(admin.ModelAdmin):
                 obj.file.url,
             )
         elif obj.media_type == Media.MediaType.VIDEO:
-            # you could make this fancier later with a generated thumbnail
             return "🎥"
         return "—"
 
@@ -123,9 +125,7 @@ class MediaAdmin(admin.ModelAdmin):
 
     @admin.display(description="Preview (full)")
     def preview(self, obj):
-        """
-        Bigger preview on the detail page.
-        """
+        """Bigger preview on the detail page."""
         if not obj.file:
             return "No file"
         if obj.media_type == Media.MediaType.IMAGE:
@@ -139,6 +139,129 @@ class MediaAdmin(admin.ModelAdmin):
                 obj.file.url,
             )
         return "Unsupported file type"
+
+    @admin.action(description="Download selected media as ZIP (with JSON metadata)")
+    def download_media_as_zip(self, request, queryset):
+        """
+        Create a ZIP file containing all selected media files plus a JSON metadata file.
+        """
+        # Create an in-memory ZIP file
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            files_added = 0
+            
+            # Add media files
+            for media in queryset:
+                if not media.file:
+                    continue
+                
+                try:
+                    # Get the file path
+                    file_path = media.file.path
+                    
+                    # Create a meaningful filename in the ZIP
+                    # Format: {id}_{title}_{original_filename}
+                    original_filename = os.path.basename(file_path)
+                    safe_title = media.title[:50] if media.title else "untitled"
+                    # Remove special characters from title
+                    safe_title = "".join(c for c in safe_title if c.isalnum() or c in (' ', '-', '_')).strip()
+                    zip_filename = f"media/{media.id}_{safe_title}_{original_filename}"
+                    
+                    # Add file to ZIP
+                    zip_file.write(file_path, zip_filename)
+                    files_added += 1
+                    
+                except Exception as e:
+                    # Log error but continue with other files
+                    self.message_user(
+                        request,
+                        f"Error adding {media.title or media.id}: {str(e)}",
+                        level=messages.WARNING
+                    )
+            
+            # Add JSON metadata
+            json_data = serializers.serialize(
+                'json',
+                queryset,
+                use_natural_foreign_keys=True,
+                use_natural_primary_keys=False,
+                indent=2
+            )
+            zip_file.writestr('metadata.json', json_data)
+        
+        if files_added == 0:
+            self.message_user(
+                request,
+                "No media files were found to download.",
+                level=messages.WARNING
+            )
+            return
+        
+        # Prepare the response
+        zip_buffer.seek(0)
+        response = HttpResponse(zip_buffer.read(), content_type='application/zip')
+        response['Content-Disposition'] = 'attachment; filename="media_backup.zip"'
+        
+        self.message_user(
+            request,
+            f"Successfully created ZIP with {files_added} file(s) and metadata.json.",
+            level=messages.SUCCESS
+        )
+        
+        return response
+
+    @admin.action(description="Export selected media as JSON only")
+    def export_as_json(self, request, queryset):
+        """
+        Export selected media objects as JSON (dumpdata format) - standalone option.
+        """
+        # Serialize the queryset
+        data = serializers.serialize(
+            'json',
+            queryset,
+            use_natural_foreign_keys=True,
+            use_natural_primary_keys=False,
+            indent=2
+        )
+        
+        # Create the response
+        response = HttpResponse(data, content_type='application/json')
+        response['Content-Disposition'] = 'attachment; filename="media_export.json"'
+        
+        self.message_user(
+            request,
+            f"Successfully exported {queryset.count()} media object(s) as JSON.",
+            level=messages.SUCCESS
+        )
+        
+        return response
+
+    @admin.action(description="Export selected media as JSON")
+    def export_as_json(self, request, queryset):
+        """
+        Export selected media objects as JSON (dumpdata format).
+        """
+        # Serialize the queryset
+        data = serializers.serialize(
+            'json',
+            queryset,
+            use_natural_foreign_keys=True,
+            use_natural_primary_keys=False,
+            indent=2
+        )
+        
+        # Create the response
+        response = HttpResponse(data, content_type='application/json')
+        response['Content-Disposition'] = 'attachment; filename="media_export.json"'
+        
+        self.message_user(
+            request,
+            f"Successfully exported {queryset.count()} media object(s) as JSON.",
+            level=messages.SUCCESS
+        )
+        
+        return response
 
 
 class CommentAdmin(admin.ModelAdmin):
@@ -157,6 +280,6 @@ class CommentAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Tag, TagAdmin)
-admin.site.register(Album, AlbumAdmin)
+#admin.site.register(Album, AlbumAdmin)
 admin.site.register(Media, MediaAdmin)
 admin.site.register(Comment, CommentAdmin)
