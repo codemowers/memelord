@@ -1,3 +1,10 @@
+## [1.0.14](https://github.com/l4rm4nd/MemeLord/compare/v1.0.13...v1.0.14) (2025-12-04)
+
+
+### Bug Fixes
+
+* adjust lightbox to load more images ([7874fb3](https://github.com/l4rm4nd/MemeLord/commit/7874fb3c36ab3a9471cfd5ffe7a9fe3056b04d44))
+
 ## [1.0.13](https://github.com/l4rm4nd/MemeLord/compare/v1.0.12...v1.0.13) (2025-11-27)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * allow multi domain declaration in DOMAIN; fixes [#1](https://github.com/l4rm4nd/MemeLord/issues/1) ([e5378b8](https://github.com/l4rm4nd/MemeLord/commit/e5378b8bddadc04989ca88463ac6199f83b7502e))
-
-## [1.0.9](https://github.com/l4rm4nd/MemeLord/compare/v1.0.8...v1.0.9) (2025-11-22)
-
-
-### Bug Fixes
-
-* show 2 memes per row on mobile ([53b32fb](https://github.com/l4rm4nd/MemeLord/commit/53b32fba5eb460ea4a1d92802d9bee5baf6f4b75))
 
