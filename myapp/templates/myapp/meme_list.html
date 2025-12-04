@@ -275,185 +275,293 @@
     });
   })();
 
-  // === Smart Lightbox ===
-  (function() {
-    const lightbox = document.getElementById("meme-lightbox");
-    const mediaContainer = document.getElementById("lightbox-media");
-    const titleEl = document.getElementById("lightbox-title");
-    const metaEl = document.getElementById("lightbox-meta");
-    const counterEl = document.getElementById("lightbox-counter");
-    const closeBtn = document.getElementById("lightbox-close");
-    const navLeft = document.getElementById("lightbox-nav-left");
-    const navRight = document.getElementById("lightbox-nav-right");
+// === Smart Lightbox with Infinite Scroll Integration ===
+(function() {
+  const lightbox = document.getElementById("meme-lightbox");
+  const mediaContainer = document.getElementById("lightbox-media");
+  const titleEl = document.getElementById("lightbox-title");
+  const metaEl = document.getElementById("lightbox-meta");
+  const counterEl = document.getElementById("lightbox-counter");
+  const closeBtn = document.getElementById("lightbox-close");
+  const navLeft = document.getElementById("lightbox-nav-left");
+  const navRight = document.getElementById("lightbox-nav-right");
+  const grid = document.getElementById("meme-grid");
 
-    let items = [];
-    let currentIndex = -1;
+  let items = [];
+  let currentIndex = -1;
+  let isLoadingMore = false;
 
-    function collectItems() {
-      items = Array.from(document.querySelectorAll("[data-meme-open]"));
-    }
+  // Access infinite scroll state from the other script
+  let infiniteScrollState = {
+    nextPage: {% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}null{% endif %},
+    loading: false
+  };
 
-    function show() {
-      lightbox.style.display = "flex";
-      setTimeout(() => lightbox.classList.add("active"), 10);
-      document.body.style.overflow = "hidden";
-    }
-    function hide() {
-      lightbox.classList.remove("active");
-      setTimeout(() => {
-        lightbox.style.display = "none";
-        document.body.style.overflow = "";
-      }, 300);
-    }
+  function collectItems() {
+    items = Array.from(document.querySelectorAll("[data-meme-open]"));
+  }
 
-    function decodeText(t) { return t ? t.replace(/\\u[\dA-Fa-f]{4}/g, m => String.fromCharCode(parseInt(m.slice(2), 16))) : ""; }
+  function show() {
+    lightbox.style.display = "flex";
+    setTimeout(() => lightbox.classList.add("active"), 10);
+    document.body.style.overflow = "hidden";
+  }
 
-    // ─── Smart Scaling (the magic) ───
-    function scaleMedia(media) {
-      media.style.width = media.style.height = media.style.maxWidth = media.style.maxHeight = "";
+  function hide() {
+    lightbox.classList.remove("active");
+    setTimeout(() => {
+      lightbox.style.display = "none";
+      document.body.style.overflow = "";
+    }, 300);
+  }
 
-      requestAnimationFrame(() => {
-        let nw, nh;
-        if (media.tagName === "VIDEO") {
-          nw = media.videoWidth;
-          nh = media.videoHeight;
-          if (!nw || !nh) return;
-        } else {
-          nw = media.naturalWidth;
-          nh = media.naturalHeight;
-          if (!nw || !nh) return;
-        }
+  function decodeText(t) { 
+    return t ? t.replace(/\\u[\dA-Fa-f]{4}/g, m => String.fromCharCode(parseInt(m.slice(2), 16))) : ""; 
+  }
 
-        const ar = nw / nh;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight - 160;
+  function scaleMedia(media) {
+    media.style.width = media.style.height = media.style.maxWidth = media.style.maxHeight = "";
 
-        const maxW = vw * 0.94;
-        const maxH = vh * 0.92;
-
-        let w, h;
-
-        if (ar > 1) {
-          // Landscape
-          w = Math.min(nw, maxW);
-          h = w / ar;
-          if (h > maxH) { h = maxH; w = h * ar; }
-        } else {
-          // Portrait → height first
-          h = Math.min(nh, maxH);
-          w = h * ar;
-
-          // Allow moderate upscaling for very tall narrow images
-          if (w < vw * 0.5 && nh <= maxH * 1.5) {
-            const upH = maxH * 1.5;
-            const upW = upH * ar;
-            if (upW <= maxW) { h = upH; w = upW; }
-          }
-          if (w > maxW) { w = maxW; h = w / ar; }
-        }
-
-        w = Math.min(w, maxW);
-        h = Math.min(h, maxH);
-
-        media.style.transition = "width 0.35s ease, height 0.35s ease";
-        media.style.width = w + "px";
-        media.style.height = h + "px";
-      });
-    }
-
-    function renderMedia() {
-      if (currentIndex < 0 || currentIndex >= items.length) return;
-      const el = items[currentIndex];
-      const type = el.dataset.mediaType || "image";
-      const url = el.dataset.fullUrl;
-      const title = decodeText(el.dataset.title || "Meme");
-      const uploader = decodeText(el.dataset.uploader || "Anonymous");
-      const created = el.dataset.created || "";
-      const detailUrl = el.dataset.detailUrl || "#";
-
-      mediaContainer.innerHTML = "";
-      mediaContainer.classList.add("loading");
-
-      if (type === "video") {
-        const video = document.createElement("video");
-        video.controls = true;
-        video.autoplay = true;
-        video.muted = false;
-
-        const source = document.createElement("source");
-        source.src = url;
-        video.appendChild(source);
-        mediaContainer.appendChild(video);
-
-        const finalize = () => {
-          mediaContainer.classList.remove("loading");
-          scaleMedia(video);
-        };
-        video.addEventListener("loadeddata", finalize);
-        video.addEventListener("canplay", () => scaleMedia(video));
+    requestAnimationFrame(() => {
+      let nw, nh;
+      if (media.tagName === "VIDEO") {
+        nw = media.videoWidth;
+        nh = media.videoHeight;
+        if (!nw || !nh) return;
       } else {
-        const img = new Image();
-        img.onload = () => {
-          mediaContainer.classList.remove("loading");
-          scaleMedia(img);
-        };
-        img.src = url;
-        img.alt = title;
-        mediaContainer.appendChild(img);
+        nw = media.naturalWidth;
+        nh = media.naturalHeight;
+        if (!nw || !nh) return;
       }
 
-      titleEl.textContent = title;
-      metaEl.innerHTML = `by ${uploader} · ${created} · <a href="${detailUrl}">View details</a>`;
-      counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
+      const ar = nw / nh;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight - 160;
 
-      navLeft.style.display = currentIndex > 0 ? "flex" : "none";
-      navRight.style.display = currentIndex < items.length - 1 ? "flex" : "none";
+      const maxW = vw * 0.94;
+      const maxH = vh * 0.92;
+
+      let w, h;
+
+      if (ar > 1) {
+        w = Math.min(nw, maxW);
+        h = w / ar;
+        if (h > maxH) { h = maxH; w = h * ar; }
+      } else {
+        h = Math.min(nh, maxH);
+        w = h * ar;
+        if (w < vw * 0.5 && nh <= maxH * 1.5) {
+          const upH = maxH * 1.5;
+          const upW = upH * ar;
+          if (upW <= maxW) { h = upH; w = upW; }
+        }
+        if (w > maxW) { w = maxW; h = w / ar; }
+      }
+
+      w = Math.min(w, maxW);
+      h = Math.min(h, maxH);
+
+      media.style.transition = "width 0.35s ease, height 0.35s ease";
+      media.style.width = w + "px";
+      media.style.height = h + "px";
+    });
+  }
+
+  function renderMedia() {
+    if (currentIndex < 0 || currentIndex >= items.length) return;
+    const el = items[currentIndex];
+    const type = el.dataset.mediaType || "image";
+    const url = el.dataset.fullUrl;
+    const title = decodeText(el.dataset.title || "Meme");
+    const uploader = decodeText(el.dataset.uploader || "Anonymous");
+    const created = el.dataset.created || "";
+    const detailUrl = el.dataset.detailUrl || "#";
+
+    mediaContainer.innerHTML = "";
+    mediaContainer.classList.add("loading");
+
+    if (type === "video") {
+      const video = document.createElement("video");
+      video.controls = true;
+      video.autoplay = true;
+      video.muted = false;
+
+      const source = document.createElement("source");
+      source.src = url;
+      video.appendChild(source);
+      mediaContainer.appendChild(video);
+
+      const finalize = () => {
+        mediaContainer.classList.remove("loading");
+        scaleMedia(video);
+      };
+      video.addEventListener("loadeddata", finalize);
+      video.addEventListener("canplay", () => scaleMedia(video));
+    } else {
+      const img = new Image();
+      img.onload = () => {
+        mediaContainer.classList.remove("loading");
+        scaleMedia(img);
+      };
+      img.src = url;
+      img.alt = title;
+      mediaContainer.appendChild(img);
     }
 
-    function open(el) {
+    titleEl.textContent = title;
+    metaEl.innerHTML = `by ${uploader} · ${created} · <a href="${detailUrl}">View details</a>`;
+    counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
+
+    navLeft.style.display = currentIndex > 0 ? "flex" : "none";
+    navRight.style.display = currentIndex < items.length - 1 || infiniteScrollState.nextPage ? "flex" : "none";
+  }
+
+  // NEW: Load more items when approaching the end
+  function loadMoreIfNeeded() {
+    // If we're near the end and there's more to load
+    if (currentIndex >= items.length - 3 && infiniteScrollState.nextPage && !isLoadingMore && !infiniteScrollState.loading) {
+      isLoadingMore = true;
+      const loader = document.getElementById("infinite-loader");
+      
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", infiniteScrollState.nextPage);
+
+      fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(r => r.json())
+        .then(data => {
+          if (data.html) {
+            grid.insertAdjacentHTML("beforeend", data.html);
+            collectItems(); // Re-collect items to include new ones
+            infiniteScrollState.nextPage = data.has_next ? data.next_page_number : null;
+            renderMedia(); // Update the UI
+          }
+        })
+        .finally(() => {
+          isLoadingMore = false;
+        });
+    }
+  }
+
+  function open(el) {
+    collectItems();
+    currentIndex = items.indexOf(el);
+    if (currentIndex === -1) return;
+    show();
+    renderMedia();
+    loadMoreIfNeeded();
+  }
+
+  function prev() { 
+    if (currentIndex > 0) { 
+      currentIndex--; 
+      renderMedia(); 
+    } 
+  }
+
+  function next() { 
+    if (currentIndex < items.length - 1) { 
+      currentIndex++; 
+      renderMedia(); 
+      loadMoreIfNeeded(); // Check if we need to load more
+    } else if (infiniteScrollState.nextPage && !isLoadingMore) {
+      // At the end but more pages available - load next page first
+      loadMoreIfNeeded();
+      // Wait a bit then advance
+      setTimeout(() => {
+        if (currentIndex < items.length - 1) {
+          currentIndex++;
+          renderMedia();
+        }
+      }, 500);
+    }
+  }
+
+  // Events
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-meme-open]");
+    if (t) { e.preventDefault(); open(t); }
+  });
+  closeBtn.addEventListener("click", hide);
+  navLeft.addEventListener("click", prev);
+  navRight.addEventListener("click", next);
+  lightbox.addEventListener("click", e => { if (e.target === lightbox) hide(); });
+
+  document.addEventListener("keydown", e => {
+    if (!lightbox.classList.contains("active")) return;
+    if (e.key === "Escape") hide();
+    if (e.key === "ArrowLeft") prev();
+    if (e.key === "ArrowRight") next();
+  });
+
+  // Touch swipe
+  let tx = 0;
+  lightbox.addEventListener("touchstart", e => tx = e.changedTouches[0].screenX, { passive: true });
+  lightbox.addEventListener("touchend", e => {
+    const dx = e.changedTouches[0].screenX - tx;
+    if (Math.abs(dx) > 50) dx > 0 ? prev() : next();
+  }, { passive: true });
+
+  // Resize
+  window.addEventListener("resize", () => {
+    if (lightbox.classList.contains("active")) {
+      const m = mediaContainer.querySelector("img, video");
+      if (m) scaleMedia(m);
+    }
+  });
+
+  // Expose state updater for infinite scroll script
+  window.updateLightboxScrollState = function(nextPage, loading) {
+    infiniteScrollState.nextPage = nextPage;
+    infiniteScrollState.loading = loading;
+    if (lightbox.classList.contains("active")) {
       collectItems();
-      currentIndex = items.indexOf(el);
-      if (currentIndex === -1) return;
-      show();
       renderMedia();
     }
+  };
+})();
 
-    function prev() { if (currentIndex > 0) { currentIndex--; renderMedia(); } }
-    function next() { if (currentIndex < items.length - 1) { currentIndex++; renderMedia(); } }
+// === Infinite Scroll (Modified) ===
+(function() {
+  const grid = document.getElementById("meme-grid");
+  const sentinel = document.getElementById("scroll-sentinel");
+  const loader = document.getElementById("infinite-loader");
+  if (!grid || !sentinel) return;
 
-    // Events
-    document.addEventListener("click", e => {
-      const t = e.target.closest("[data-meme-open]");
-      if (t) { e.preventDefault(); open(t); }
-    });
-    closeBtn.addEventListener("click", hide);
-    navLeft.addEventListener("click", prev);
-    navRight.addEventListener("click", next);
-    lightbox.addEventListener("click", e => { if (e.target === lightbox) hide(); });
+  let nextPage = {% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}null{% endif %};
+  let loading = false;
 
-    document.addEventListener("keydown", e => {
-      if (!lightbox.classList.contains("active")) return;
-      if (e.key === "Escape") hide();
-      if (e.key === "ArrowLeft") prev();
-      if (e.key === "ArrowRight") next();
-    });
+  function loadMore() {
+    if (!nextPage || loading) return;
+    loading = true;
+    loader?.classList.remove("d-none");
 
-    // Touch swipe
-    let tx = 0;
-    lightbox.addEventListener("touchstart", e => tx = e.changedTouches[0].screenX, { passive: true });
-    lightbox.addEventListener("touchend", e => {
-      const dx = e.changedTouches[0].screenX - tx;
-      if (Math.abs(dx) > 50) dx > 0 ? prev() : next();
-    }, { passive: true });
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", nextPage);
 
-    // Resize
-    window.addEventListener("resize", () => {
-      if (lightbox.classList.contains("active")) {
-        const m = mediaContainer.querySelector("img, video");
-        if (m) scaleMedia(m);
-      }
-    });
-  })();
+    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.html) grid.insertAdjacentHTML("beforeend", data.html);
+        nextPage = data.has_next ? data.next_page_number : null;
+        if (!nextPage && observer) observer.disconnect();
+        
+        // Notify lightbox of state change
+        if (window.updateLightboxScrollState) {
+          window.updateLightboxScrollState(nextPage, false);
+        }
+      })
+      .finally(() => {
+        loading = false;
+        loader?.classList.add("d-none");
+      });
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: "300px" });
+
+  if (nextPage) observer.observe(sentinel);
+})();
 </script>
 
 {% endblock %}
