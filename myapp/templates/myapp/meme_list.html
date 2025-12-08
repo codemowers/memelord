@@ -438,7 +438,20 @@
 
     titleEl.textContent = title;
     
-    // Parse tags and display up to 5
+    // Clear and rebuild meta section using DOM methods (XSS-safe)
+    metaEl.textContent = ""; // Clear existing content
+    
+    // Create metadata text nodes and elements
+    const metaText = document.createTextNode(`by ${uploader} · ${created} · `);
+    metaEl.appendChild(metaText);
+    
+    // Create "View details" link safely
+    const detailLink = document.createElement("a");
+    detailLink.href = detailUrl;
+    detailLink.textContent = "View details";
+    metaEl.appendChild(detailLink);
+    
+    // Parse and display tags using DOM methods
     let tags = [];
     try {
       tags = JSON.parse(tagsJson);
@@ -446,27 +459,33 @@
       console.error("Error parsing tags:", e);
     }
 
-    let tagsHtml = "";
     if (tags && tags.length > 0) {
+      const tagsContainer = document.createElement("div");
+      tagsContainer.className = "lightbox-tags";
+      tagsContainer.style.marginTop = "8px";
+      
       const displayTags = tags.slice(0, 5);
-      const tagBadges = displayTags.map(tag => {
-        const tagUrl = tag.url || "#";
-        const tagName = decodeText(tag.name || "");
-        return `<a href="${tagUrl}" class="lightbox-tag-badge" onclick="event.stopPropagation()">#${tagName}</a>`;
-      }).join(" ");
+      displayTags.forEach(tag => {
+        const tagLink = document.createElement("a");
+        tagLink.href = tag.url || "#";
+        tagLink.className = "lightbox-tag-badge";
+        tagLink.textContent = "#" + decodeText(tag.name || "");
+        tagLink.onclick = (e) => e.stopPropagation();
+        tagsContainer.appendChild(tagLink);
+      });
       
       // Add "+N more" indicator if there are more than 5 tags
-      const moreIndicator = tags.length > 5 
-        ? `<a href="${detailUrl}" class="lightbox-tag-badge" onclick="event.stopPropagation()">+${tags.length - 5}</a>`
-        : "";
+      if (tags.length > 5) {
+        const moreLink = document.createElement("a");
+        moreLink.href = detailUrl;
+        moreLink.className = "lightbox-tag-badge";
+        moreLink.textContent = `+${tags.length - 5}`;
+        moreLink.onclick = (e) => e.stopPropagation();
+        tagsContainer.appendChild(moreLink);
+      }
       
-      tagsHtml = `<div class="lightbox-tags" style="margin-top: 8px;">${tagBadges}${moreIndicator}</div>`;
+      metaEl.appendChild(tagsContainer);
     }
-
-    metaEl.innerHTML = `
-      by ${uploader} · ${created} · <a href="${detailUrl}">View details</a>
-      ${tagsHtml}
-    `;
 
     counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
 

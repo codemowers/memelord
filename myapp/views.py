@@ -37,6 +37,7 @@ def meme_list(request):
         Media.objects.filter(is_public=True)
         .select_related("uploader", "album")
         .prefetch_related("tags")
+        .annotate(comment_count=Count("comments"))
     )
 
     tag_slug = request.GET.get("tag") or ""
@@ -248,7 +249,12 @@ def meme_random(request):
     tag_slug = request.GET.get("tag")
     current_tag = None
 
-    qs = Media.objects.select_related("uploader").prefetch_related("tags")
+    qs = (
+        Media.objects
+        .select_related("uploader")
+        .prefetch_related("tags")
+        .annotate(comment_count=Count("comments"))
+    )
 
     # Apply same tag filter logic as meme_list
     if tag_slug:
