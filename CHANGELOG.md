@@ -1,3 +1,10 @@
+## [1.0.17](https://github.com/l4rm4nd/MemeLord/compare/v1.0.16...v1.0.17) (2025-12-08)
+
+
+### Bug Fixes
+
+* properly construct tags with js ([b0e85c8](https://github.com/l4rm4nd/MemeLord/commit/b0e85c82cc673b38f08b4184bb22be25e2cea632))
+
 ## [1.0.16](https://github.com/l4rm4nd/MemeLord/compare/v1.0.15...v1.0.16) (2025-12-08)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * media backup includes user dirs ([cc84d48](https://github.com/l4rm4nd/MemeLord/commit/cc84d4828d8cc63802b3b26342e86d9bde50ed1b))
-
-## [1.0.12](https://github.com/l4rm4nd/MemeLord/compare/v1.0.11...v1.0.12) (2025-11-27)
-
-
-### Bug Fixes
-
-* allow media backup via django admin ([cd08d3f](https://github.com/l4rm4nd/MemeLord/commit/cd08d3fb0adf4fd32916fb7a48e4098645de65a0))
 
