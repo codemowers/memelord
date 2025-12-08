@@ -1,3 +1,10 @@
+## [1.0.16](https://github.com/l4rm4nd/MemeLord/compare/v1.0.15...v1.0.16) (2025-12-08)
+
+
+### Bug Fixes
+
+* display tags on lightdm and improve tag adding ([add3f64](https://github.com/l4rm4nd/MemeLord/commit/add3f6457b4a46fb1331ee705485d86f7c64cdb7))
+
 ## [1.0.15](https://github.com/l4rm4nd/MemeLord/compare/v1.0.14...v1.0.15) (2025-12-04)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * allow media backup via django admin ([cd08d3f](https://github.com/l4rm4nd/MemeLord/commit/cd08d3fb0adf4fd32916fb7a48e4098645de65a0))
-
-## [1.0.11](https://github.com/l4rm4nd/MemeLord/compare/v1.0.10...v1.0.11) (2025-11-25)
-
-
-### Bug Fixes
-
-* name in admin panel; [#1](https://github.com/l4rm4nd/MemeLord/issues/1) ([09437f8](https://github.com/l4rm4nd/MemeLord/commit/09437f850a1cf3b8255b6c6e5ea4f08d7ea7d339))
 
