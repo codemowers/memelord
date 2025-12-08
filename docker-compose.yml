@@ -1,8 +1,8 @@
 services:
-
   app:
-    image: ghcr.io/l4rm4nd/memelord:latest # pin a minor version series tag instead of latest
-    container_name: memelord
+    build:
+      context: .
+    image: ghcr.io/l4rm4nd/memelord:latest
     environment:
       # your FQDN or IP; multiple ones supported by comma separation
       - DOMAIN=memelord.example.com
@@ -52,13 +52,8 @@ services:
     ports:
       - 8000:8000
     volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
       - ./volume-data/database:/opt/app/database # persistent storage for sqlite3 database
       - ./volume-data/media:/opt/app/media # persistent storage for uploaded media
-    #networks:
-    #  - proxy
-    #  - internal
     #labels:
     #  - traefik.enable=true
     #  - traefik.docker.network=proxy
@@ -67,23 +62,16 @@ services:
     #  # Optional part for traefik middlewares
     #  - traefik.http.routers.memelord.middlewares=local-ipwhitelist@file
 
-#  db:
-#    container_name: memelord-psql
-#    image: postgres:16-alpine
-#    restart: unless-stopped
-#    expose:
-#      - 5432
-#    volumes:
-#      - ./volume-data/database/psql:/var/lib/postgresql/data/
-#    environment:
-#      - POSTGRES_USER=memelord
-#      - POSTGRES_PASSWORD=memelord
-#      - POSTGRES_DB=memelord
-#    #networks:
-#    #  - internal
+  db:
+    container_name: memelord-psql
+    image: postgres:16-alpine
+    restart: unless-stopped
+    expose:
+      - 5432
+    volumes:
+      - ./volume-data/database/psql:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=memelord
+      - POSTGRES_PASSWORD=memelord
+      - POSTGRES_DB=memelord
 
-#networks:
-#  proxy:
-#    external: true
-#  internal:
-#    internal: true
