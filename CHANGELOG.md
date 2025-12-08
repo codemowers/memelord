@@ -1,3 +1,10 @@
+## [1.0.15](https://github.com/l4rm4nd/MemeLord/compare/v1.0.14...v1.0.15) (2025-12-04)
+
+
+### Bug Fixes
+
+* bump django ([340dea2](https://github.com/l4rm4nd/MemeLord/commit/340dea29be10fcfbd005281ca996c720b339e50f))
+
 ## [1.0.14](https://github.com/l4rm4nd/MemeLord/compare/v1.0.13...v1.0.14) (2025-12-04)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * name in admin panel; [#1](https://github.com/l4rm4nd/MemeLord/issues/1) ([09437f8](https://github.com/l4rm4nd/MemeLord/commit/09437f850a1cf3b8255b6c6e5ea4f08d7ea7d339))
-
-## [1.0.10](https://github.com/l4rm4nd/MemeLord/compare/v1.0.9...v1.0.10) (2025-11-25)
-
-
-### Bug Fixes
-
-* allow multi domain declaration in DOMAIN; fixes [#1](https://github.com/l4rm4nd/MemeLord/issues/1) ([e5378b8](https://github.com/l4rm4nd/MemeLord/commit/e5378b8bddadc04989ca88463ac6199f83b7502e))
 

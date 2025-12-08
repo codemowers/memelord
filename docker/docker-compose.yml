@@ -58,6 +58,7 @@ services:
       - ./volume-data/media:/opt/app/media # persistent storage for uploaded media
     #networks:
     #  - proxy
+    #  - internal
     #labels:
     #  - traefik.enable=true
     #  - traefik.docker.network=proxy
@@ -77,10 +78,12 @@ services:
 #    environment:
 #      - POSTGRES_USER=memelord
 #      - POSTGRES_PASSWORD=memelord
-#      - POSTGRES_DB=memelord    
+#      - POSTGRES_DB=memelord
 #    #networks:
-#    #  - proxy
+#    #  - internal
 
 #networks:
 #  proxy:
-#    external: true      
+#    external: true
+#  internal:
+#    internal: true
