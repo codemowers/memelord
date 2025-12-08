@@ -411,13 +411,29 @@
   }
 
   // Tag editing toggle
-  if (editTagsBtn) {
-    editTagsBtn.addEventListener("click", function() {
-      tagsDisplayArea.classList.add("d-none");
-      tagsEditArea.classList.remove("d-none");
-      tagsInput.focus();
-    });
-  }
+// Tag editing toggle
+if (editTagsBtn) {
+  editTagsBtn.addEventListener("click", function() {
+    tagsDisplayArea.classList.add("d-none");
+    tagsEditArea.classList.remove("d-none");
+    
+    // Focus the input
+    tagsInput.focus();
+    
+    // Move cursor to end and add comma separator if there's existing content
+    if (tagsInput.value.trim()) {
+      // Remove any trailing comma/space first
+      tagsInput.value = tagsInput.value.trim().replace(/[,\s]+$/, '');
+      
+      // Add comma and space at the end
+      tagsInput.value = tagsInput.value + ', ';
+      
+      // Move cursor to the end
+      const length = tagsInput.value.length;
+      tagsInput.setSelectionRange(length, length);
+    }
+  });
+}
 
   if (cancelTagsBtn) {
     cancelTagsBtn.addEventListener("click", function() {

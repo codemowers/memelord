@@ -194,6 +194,32 @@
     .lightbox-close { top: 10px; right: 10px; }
     .lightbox-nav-left, .lightbox-nav-right { width: 25%; }
   }
+
+  .lightbox-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.lightbox-tag-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  color: #6ea8fe;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.lightbox-tag-badge:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #9ec5fe;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
 </style>
 
 <script>
@@ -276,6 +302,7 @@
   })();
 
 // === Smart Lightbox with Infinite Scroll Integration ===
+// === Smart Lightbox with Infinite Scroll Integration and Tags ===
 (function() {
   const lightbox = document.getElementById("meme-lightbox");
   const mediaContainer = document.getElementById("lightbox-media");
@@ -376,6 +403,7 @@
     const uploader = decodeText(el.dataset.uploader || "Anonymous");
     const created = el.dataset.created || "";
     const detailUrl = el.dataset.detailUrl || "#";
+    const tagsJson = el.dataset.tags || "[]";
 
     mediaContainer.innerHTML = "";
     mediaContainer.classList.add("loading");
@@ -409,16 +437,45 @@
     }
 
     titleEl.textContent = title;
-    metaEl.innerHTML = `by ${uploader} · ${created} · <a href="${detailUrl}">View details</a>`;
+    
+    // Parse tags and display up to 5
+    let tags = [];
+    try {
+      tags = JSON.parse(tagsJson);
+    } catch (e) {
+      console.error("Error parsing tags:", e);
+    }
+
+    let tagsHtml = "";
+    if (tags && tags.length > 0) {
+      const displayTags = tags.slice(0, 5);
+      const tagBadges = displayTags.map(tag => {
+        const tagUrl = tag.url || "#";
+        const tagName = decodeText(tag.name || "");
+        return `<a href="${tagUrl}" class="lightbox-tag-badge" onclick="event.stopPropagation()">#${tagName}</a>`;
+      }).join(" ");
+      
+      // Add "+N more" indicator if there are more than 5 tags
+      const moreIndicator = tags.length > 5 
+        ? `<a href="${detailUrl}" class="lightbox-tag-badge" onclick="event.stopPropagation()">+${tags.length - 5}</a>`
+        : "";
+      
+      tagsHtml = `<div class="lightbox-tags" style="margin-top: 8px;">${tagBadges}${moreIndicator}</div>`;
+    }
+
+    metaEl.innerHTML = `
+      by ${uploader} · ${created} · <a href="${detailUrl}">View details</a>
+      ${tagsHtml}
+    `;
+
     counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
 
     navLeft.style.display = currentIndex > 0 ? "flex" : "none";
     navRight.style.display = currentIndex < items.length - 1 || infiniteScrollState.nextPage ? "flex" : "none";
   }
 
-  // NEW: Load more items when approaching the end
+  // Load more items when approaching the end
   function loadMoreIfNeeded() {
-    // If we're near the end and there's more to load
     if (currentIndex >= items.length - 3 && infiniteScrollState.nextPage && !isLoadingMore && !infiniteScrollState.loading) {
       isLoadingMore = true;
       const loader = document.getElementById("infinite-loader");
@@ -431,9 +488,9 @@
         .then(data => {
           if (data.html) {
             grid.insertAdjacentHTML("beforeend", data.html);
-            collectItems(); // Re-collect items to include new ones
+            collectItems();
             infiniteScrollState.nextPage = data.has_next ? data.next_page_number : null;
-            renderMedia(); // Update the UI
+            renderMedia();
           }
         })
         .finally(() => {
@@ -462,11 +519,9 @@
     if (currentIndex < items.length - 1) { 
       currentIndex++; 
       renderMedia(); 
-      loadMoreIfNeeded(); // Check if we need to load more
-    } else if (infiniteScrollState.nextPage && !isLoadingMore) {
-      // At the end but more pages available - load next page first
       loadMoreIfNeeded();
-      // Wait a bit then advance
+    } else if (infiniteScrollState.nextPage && !isLoadingMore) {
+      loadMoreIfNeeded();
       setTimeout(() => {
         if (currentIndex < items.length - 1) {
           currentIndex++;
@@ -518,49 +573,6 @@
       renderMedia();
     }
   };
-})();
-
-// === Infinite Scroll (Modified) ===
-(function() {
-  const grid = document.getElementById("meme-grid");
-  const sentinel = document.getElementById("scroll-sentinel");
-  const loader = document.getElementById("infinite-loader");
-  if (!grid || !sentinel) return;
-
-  let nextPage = {% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}null{% endif %};
-  let loading = false;
-
-  function loadMore() {
-    if (!nextPage || loading) return;
-    loading = true;
-    loader?.classList.remove("d-none");
-
-    const url = new URL(window.location.href);
-    url.searchParams.set("page", nextPage);
-
-    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-      .then(r => r.json())
-      .then(data => {
-        if (data.html) grid.insertAdjacentHTML("beforeend", data.html);
-        nextPage = data.has_next ? data.next_page_number : null;
-        if (!nextPage && observer) observer.disconnect();
-        
-        // Notify lightbox of state change
-        if (window.updateLightboxScrollState) {
-          window.updateLightboxScrollState(nextPage, false);
-        }
-      })
-      .finally(() => {
-        loading = false;
-        loader?.classList.add("d-none");
-      });
-  }
-
-  const observer = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting) loadMore();
-  }, { rootMargin: "300px" });
-
-  if (nextPage) observer.observe(sentinel);
 })();
 </script>
 
