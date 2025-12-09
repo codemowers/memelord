@@ -241,8 +241,8 @@ STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "bucket_name": os.eviron.get("AWS_STORAGE_BUCKET_NAME"),
-            "endpoint_url": os.eviron.get("AWS_S3_ENDPOINT_URL"),
+            "bucket_name": os.environ.get("AWS_STORAGE_BUCKET_NAME"),
+            "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL"),
             "region_name": os.environ.get("AWS_S3_REGION_NAME"),
         },
     },
