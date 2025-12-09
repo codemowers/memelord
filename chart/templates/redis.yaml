@@ -1,0 +1,41 @@
+---
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: memelord-redis
+spec:
+  fields:
+    - fieldName: redis-password
+      length: "32"
+      encoding: hex
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: memelord-redis
+spec:
+  authentication:
+    passwordFromSecret:
+      name: memelord-redis
+      key: redis-password
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 500Mi
+    limits:
+      cpu: 600m
+      memory: 750Mi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  podTargetLabels:
+    - app
+  podMetricsEndpoints:
+    - port: admin

@@ -1,0 +1,46 @@
+---
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: Policy
+metadata:
+  name: memelord-{{ .Release.Name }}-policy
+spec:
+  name: memelord-{{ .Release.Name }}-policy
+  s3InstanceRef: minio/default
+  policyContent: >-
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject"
+          ],
+          "Resource": [
+            "arn:aws:s3:::memelord",
+            "arn:aws:s3:::memelord/*"
+          ]
+        }
+      ]
+    }
+---
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: S3User
+metadata:
+  name: memelord-{{ .Release.Name }}-bucket
+spec:
+  accessKey: memelord-{{ .Release.Name }}-bucket
+  policies:
+    - memelord-{{ .Release.Name }}-policy
+  s3InstanceRef: minio/default
+---
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: Bucket
+metadata:
+  name: memelord-{{ .Release.Name }}
+spec:
+  name: memelord-{{ .Release.Name }}
+  s3InstanceRef: minio/default
+  quota:
+    default: 100000000
+

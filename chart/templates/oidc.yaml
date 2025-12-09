@@ -1,0 +1,19 @@
+---
+apiVersion: codemowers.cloud/v1beta1
+kind: OIDCClient
+metadata:
+  name: memelord-{{ .Release.Name }}
+spec:
+  displayName: Memelord {{ .Release.Name }}
+  uri: https://memelord-{{ .Release.Name }}.ee-lte-1.codemowers.io/
+  redirectUris:
+    - https://memelord-{{ .Release.Name }}.ee-lte-1.codemowers.io/oidc/callback/
+  grantTypes:
+    - authorization_code
+    - refresh_token
+  responseTypes:
+    - code
+  availableScopes:
+    - openid
+    - profile
+  pkce: false

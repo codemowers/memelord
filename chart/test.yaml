@@ -1,0 +1,352 @@
+---
+# Source: memelord/templates/deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: memelord-memelord-lauri-app
+spec:
+  selector:
+    app: memelord
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+# Source: memelord/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memelord-memelord-lauri-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memelord-memelord-lauri
+  template:
+    metadata:
+      labels:
+        app: memelord-memelord-lauri
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: memelord
+          image: codemowers/memelord:latest
+          securityContext:
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          env:
+            - name: REDIS_HOST
+              value: memelord-memelord-lauri-redis
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-redis
+                  key: redis-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-secrets
+                  key: secret-key
+
+            - name: AWS_STORAGE_BUCKET_NAME
+              value: memelord
+            - name: AWS_S3_ENDPOINT_URL
+              value: https://minio.ee-lte-1.codemowers.io/
+            - name: AWS_S3_REGION_NAME
+              value: ee-lte-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-bucket
+                  key: accessKey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-bucket
+                  key: secretKey
+            - name: DEBUG
+              value: "True"
+            - name: SECURE_COOKIES
+              value: "True"
+            - name: OIDC_ENABLED
+              value: "True"
+            - name: OIDC_RP_SIGN_ALGO
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_ID_TOKEN_SIGNED_RESPONSE_ALG
+            - name: OIDC_OP_JWKS_ENDPOINT
+              value: https://auth.ee-lte-1.codemowers.io/jwks
+            - name: OIDC_RP_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_RP_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_CLIENT_SECRET
+            - name: OIDC_OP_AUTHORIZATION_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_IDP_AUTH_URI
+            - name: OIDC_OP_TOKEN_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_IDP_TOKEN_URI
+            - name: OIDC_OP_USER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-memelord-lauri-owner-secrets
+                  key: OIDC_IDP_USERINFO_URI
+            - name: DOMAIN
+              value: memelord-lauri.ee-lte-1.codemowers.io
+            - name: SESSION_COOKIE_AGE
+              value: "30"
+            - name: SESSION_EXPIRE_AT_BROWSER_CLOSE
+              value: "False"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: DB_ENGINE
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-database
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-memelord-lauri-database
+                  key: password
+            - name: POSTGRES_DB
+              value: "memelord"
+            - name: POSTGRES_HOST
+              value: memelord-memelord-lauri-database-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 500Mi
+---
+# Source: memelord/templates/deployment.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memelord-memelord-lauri
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+spec:
+  rules:
+  - host: memelord-lauri.ee-lte-1.codemowers.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memelord-app
+            port:
+              number: 80
+---
+# Source: memelord/templates/bucket.yaml
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: Bucket
+metadata:
+  name: memelord-memelord-lauri
+spec:
+  name: memelord-memelord-lauri
+  s3InstanceRef: minio/default
+  quota:
+    default: 100000000
+---
+# Source: memelord/templates/postgres.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: memelord-memelord-lauri-database
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 1Gi
+    storageClass: postgres
+  affinity:
+    nodeSelector:
+      codemowers.io/lvm-ubuntu-vg: enterprise-ssd
+  monitoring:
+    enablePodMonitor: true
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  postgresql:
+    parameters:
+      max_connections: "300"
+      shared_buffers: "512MB"
+      effective_cache_size: "2GB"
+  managed:
+    roles:
+    - name: memelord-memelord-lauri
+      ensure: present
+      login: true
+      passwordSecret:
+        name: memelord-memelord-lauri-database
+---
+# Source: memelord/templates/postgres.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: memelord-memelord-lauri
+spec:
+  name: memelord-memelord-lauri
+  owner: memelord-memelord-lauri
+  cluster:
+    name: memelord-memelord-lauri-database
+---
+# Source: memelord/templates/redis.yaml
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: memelord-redis
+spec:
+  authentication:
+    passwordFromSecret:
+      name: memelord-redis
+      key: redis-password
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 500Mi
+    limits:
+      cpu: 600m
+      memory: 750Mi
+---
+# Source: memelord/templates/oidc.yaml
+apiVersion: codemowers.cloud/v1beta1
+kind: OIDCClient
+metadata:
+  name: memelord-memelord-lauri
+spec:
+  displayName: Memelord memelord-lauri
+  uri: https://memelord-memelord-lauri.ee-lte-1.codemowers.io/
+  redirectUris:
+    - https://memelord-memelord-lauri.ee-lte-1.codemowers.io/oidc/callback/
+  grantTypes:
+    - authorization_code
+    - refresh_token
+  responseTypes:
+    - code
+  availableScopes:
+    - openid
+    - profile
+  pkce: false
+---
+# Source: memelord/templates/redis.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  podTargetLabels:
+    - app
+  podMetricsEndpoints:
+    - port: admin
+---
+# Source: memelord/templates/bucket.yaml
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: Policy
+metadata:
+  name: memelord-memelord-lauri-policy
+spec:
+  name: memelord-memelord-lauri-policy
+  s3InstanceRef: minio/default
+  policyContent: >-
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject"
+          ],
+          "Resource": [
+            "arn:aws:s3:::memelord",
+            "arn:aws:s3:::memelord/*"
+          ]
+        }
+      ]
+    }
+---
+# Source: memelord/templates/bucket.yaml
+apiVersion: s3.onyxia.sh/v1alpha1
+kind: S3User
+metadata:
+  name: memelord-memelord-lauri-bucket
+spec:
+  accessKey: memelord-memelord-lauri-bucket
+  policies:
+    - memelord-memelord-lauri-policy
+  s3InstanceRef: minio/default
+---
+# Source: memelord/templates/deployment.yaml
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: memelord-memelord-lauri-secrets
+spec:
+  fields:
+    - fieldName: secret-key
+      length: "32"
+      encoding: hex
+---
+# Source: memelord/templates/postgres.yaml
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: memelord-memelord-lauri-database
+  labels:
+    cnpg.io/reload: "true"
+spec:
+  data:
+    username: memelord-memelord-lauri
+  fields:
+    - fieldName: password
+      length: "32"
+      encoding: hex
+---
+# Source: memelord/templates/redis.yaml
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: memelord-redis
+spec:
+  fields:
+    - fieldName: redis-password
+      length: "32"
+      encoding: hex

@@ -1,0 +1,173 @@
+---
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: memelord-{{ .Release.Name }}-secrets
+spec:
+  fields:
+    - fieldName: secret-key
+      length: "32"
+      encoding: hex
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memelord-{{ .Release.Name }}-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memelord-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: memelord-{{ .Release.Name }}
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: memelord
+          image: codemowers/memelord:latest
+          securityContext:
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          env:
+            - name: REDIS_HOST
+              value: memelord-{{ .Release.Name }}-redis
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-redis
+                  key: redis-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-secrets
+                  key: secret-key
+
+            - name: AWS_STORAGE_BUCKET_NAME
+              value: memelord
+            - name: AWS_S3_ENDPOINT_URL
+              value: https://minio.ee-lte-1.codemowers.io/
+            - name: AWS_S3_REGION_NAME
+              value: ee-lte-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-bucket
+                  key: accessKey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-bucket
+                  key: secretKey
+            - name: DEBUG
+              value: "True"
+            - name: SECURE_COOKIES
+              value: "True"
+            - name: OIDC_ENABLED
+              value: "True"
+            - name: OIDC_RP_SIGN_ALGO
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_ID_TOKEN_SIGNED_RESPONSE_ALG
+            - name: OIDC_OP_JWKS_ENDPOINT
+              value: https://auth.ee-lte-1.codemowers.io/jwks
+            - name: OIDC_RP_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_RP_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_CLIENT_SECRET
+            - name: OIDC_OP_AUTHORIZATION_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_IDP_AUTH_URI
+            - name: OIDC_OP_TOKEN_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_IDP_TOKEN_URI
+            - name: OIDC_OP_USER_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
+                  key: OIDC_IDP_USERINFO_URI
+            - name: DOMAIN
+              value: {{ .Release.Name }}.ee-lte-1.codemowers.io
+            - name: SESSION_COOKIE_AGE
+              value: "30"
+            - name: SESSION_EXPIRE_AT_BROWSER_CLOSE
+              value: "False"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: DB_ENGINE
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-database
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memelord-{{ .Release.Name }}-database
+                  key: password
+            - name: POSTGRES_DB
+              value: "memelord"
+            - name: POSTGRES_HOST
+              value: memelord-{{ .Release.Name }}-database-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memelord-{{ .Release.Name }}-app
+spec:
+  selector:
+    app: memelord
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memelord-{{ .Release.Name }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+spec:
+  rules:
+  - host: {{ .Release.Name }}.{{ .Values.domain }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memelord-app
+            port:
+              number: 80
