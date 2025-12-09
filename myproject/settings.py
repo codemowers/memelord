@@ -63,8 +63,8 @@ if REDIS_HOST:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://%s:%s/%s" % (REDIS_HOST, REDIS_PORT, REDIS_DB),
             "OPTIONS": {
-                "LOCATION": "redis://%s:%s/%s" % (REDIS_HOST, REDIS_PORT, REDIS_DB),
                 "PASSWORD": os.environ.get("REDIS_PASSWORD", ""),
             }
         }
