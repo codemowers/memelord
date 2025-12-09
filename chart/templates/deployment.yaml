@@ -108,7 +108,7 @@ spec:
                   name: oidc-client-memelord-{{ .Release.Name }}-owner-secrets
                   key: OIDC_IDP_USERINFO_URI
             - name: DOMAIN
-              value: {{ .Release.Name }}.ee-lte-1.codemowers.io
+              value: {{ .Values.hostname }}.{{ .Values.domain }}
             - name: SESSION_COOKIE_AGE
               value: "30"
             - name: SESSION_EXPIRE_AT_BROWSER_CLOSE
