@@ -13,6 +13,7 @@ spec:
         {
           "Effect": "Allow",
           "Action": [
+            "s3:ListBucket",
             "s3:GetObject",
             "s3:PutObject"
           ],
@@ -29,7 +30,7 @@ kind: S3User
 metadata:
   name: memelord-{{ .Release.Name }}-bucket
 spec:
-  accessKey: memelord-{{ .Release.Name }}-bucket
+  accessKey: memelord-{{ .Release.Name }}-bucket # This is automatically created
   policies:
     - memelord-{{ .Release.Name }}-policy
   s3InstanceRef: minio/default
