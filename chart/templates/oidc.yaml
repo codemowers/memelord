@@ -5,9 +5,9 @@ metadata:
   name: memelord-{{ .Release.Name }}
 spec:
   displayName: Memelord {{ .Release.Name }}
-  uri: https://memelord-{{ .Release.Name }}.ee-lte-1.codemowers.io/
+  uri: https://{{ .Values.hostname }}.{{ .Values.domain }}/
   redirectUris:
-    - https://memelord-{{ .Release.Name }}.ee-lte-1.codemowers.io/oidc/callback/
+    - https://{{ .Values.hostname }}.{{ .Values.domain }}/oidc/callback/
   grantTypes:
     - authorization_code
     - refresh_token

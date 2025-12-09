@@ -161,7 +161,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
 spec:
   rules:
-  - host: {{ .Release.Name }}.{{ .Values.domain }}
+  - host: {{ .Values.hostname }}.{{ .Values.domain }}
     http:
       paths:
       - path: /
