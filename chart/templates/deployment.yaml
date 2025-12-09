@@ -33,11 +33,13 @@ spec:
         - name: memelord
           image: codemowers/memelord:latest
           securityContext:
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
           ports:
             - containerPort: 8000
           volumeMounts:
             - mountPath: /tmp
+              name: tmp
+            - mountPath: /opt/app/myapp/static/
               name: tmp
           env:
             - name: REDIS_HOST
@@ -128,7 +130,7 @@ spec:
                   name: memelord-{{ .Release.Name }}-database
                   key: password
             - name: POSTGRES_DB
-              value: "memelord"
+              value: memelord-{{ .Release.Name }}
             - name: POSTGRES_HOST
               value: memelord-{{ .Release.Name }}-database-rw
             - name: POSTGRES_PORT
