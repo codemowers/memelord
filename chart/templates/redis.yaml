@@ -2,7 +2,7 @@
 apiVersion: secretgenerator.mittwald.de/v1alpha1
 kind: StringSecret
 metadata:
-  name: memelord-redis
+  name: memelord-{{ .Release.Name }}-redis
 spec:
   fields:
     - fieldName: redis-password
@@ -12,11 +12,11 @@ spec:
 apiVersion: dragonflydb.io/v1alpha1
 kind: Dragonfly
 metadata:
-  name: memelord-redis
+  name: memelord-{{ .Release.Name }}-redis
 spec:
   authentication:
     passwordFromSecret:
-      name: memelord-redis
+      name: memelord-{{ .Release.Name }}-redis
       key: redis-password
   replicas: 3
   resources:
@@ -30,7 +30,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: redis
+  name: memelord-{{ .Release.Name }}-redis
 spec:
   selector:
     matchLabels:
