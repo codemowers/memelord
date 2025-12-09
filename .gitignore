@@ -40,3 +40,4 @@ acme.json
 
 # ignore file uploads
 **/uploads/**
+.aider*

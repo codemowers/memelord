@@ -24,7 +24,8 @@ spec:
   storage:
     size: 1Gi
     storageClass: postgres
-  affinity:
+  affinity: # These should be enforced/mutated by Kyverno
+    podAntiAffinityType: required
     nodeSelector:
       codemowers.io/lvm-ubuntu-vg: enterprise-ssd
   monitoring:
