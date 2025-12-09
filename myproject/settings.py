@@ -87,13 +87,15 @@ raw_frame_ancestors = os.environ.get("CSP_FRAME_ANCESTORS", "'none'")
 # Split by comma, strip spaces, and keep properly quoted entries
 FRAME_ANCESTORS = [item.strip() for item in raw_frame_ancestors.split(',') if item.strip()]
 
+AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": ["'self'"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
         "font-src": ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:", "blob:", "https://img.logo.dev"],
+        "img-src": ["'self'", "data:", "blob:", "https://img.logo.dev"] + ([AWS_S3_ENDPOINT_URL] if AWS_S3_ENDPOINT_URL else []),
         "object-src": ["'none'"],
         "connect-src": ["'self'"],
         "frame-ancestors": FRAME_ANCESTORS,
@@ -242,7 +244,7 @@ STORAGES = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": os.environ.get("AWS_STORAGE_BUCKET_NAME"),
-            "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL"),
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
             "region_name": os.environ.get("AWS_S3_REGION_NAME"),
         },
     },
