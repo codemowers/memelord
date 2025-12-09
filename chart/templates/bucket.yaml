@@ -17,8 +17,8 @@ spec:
             "s3:PutObject"
           ],
           "Resource": [
-            "arn:aws:s3:::memelord",
-            "arn:aws:s3:::memelord/*"
+            "arn:aws:s3:::memelord-{{ .Release.Name }}",
+            "arn:aws:s3:::memelord-{{ .Release.Name }}/*"
           ]
         }
       ]
