@@ -145,7 +145,7 @@ metadata:
   name: memelord-{{ .Release.Name }}-app
 spec:
   selector:
-    app: memelord
+    app: memelord-{{ .Release.Name }}
   ports:
     - protocol: TCP
       port: 80
@@ -168,6 +168,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: memelord-app
+            name: memelord-{{ .Release.Name }}-app
             port:
               number: 80
