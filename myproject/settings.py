@@ -54,6 +54,25 @@ if DOMAIN:
             TRUSTED_USER_DOMAIN_HTTPS_443_DEFAULT = f"https://{domain}"
             CSRF_TRUSTED_ORIGINS.extend([TRUSTED_USER_DOMAIN_HTTP, TRUSTED_USER_DOMAIN_HTTPS, TRUSTED_USER_DOMAIN_HTTP_80_DEFAULT, TRUSTED_USER_DOMAIN_HTTPS_443_DEFAULT])
 
+# Caching via Redis
+REDIS_HOST = os.environ.get("REDIS_HOST", "")
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
+REDIS_DB = os.environ.get("REDIS_DB", "0")
+
+if REDIS_HOST:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "OPTIONS": {
+                "LOCATION": "redis://%s:%s/%s" % (REDIS_HOST, REDIS_PORT, REDIS_DB),
+                "PASSWORD": os.environ.get("REDIS_PASSWORD", ""),
+            }
+        }
+    }
+
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+
 #Session Management
 CSRF_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = os.environ.get('SESSION_EXPIRE_AT_BROWSER_CLOSE', 'True').lower() in ['true']
