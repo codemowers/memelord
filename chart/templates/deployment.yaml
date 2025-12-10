@@ -24,16 +24,10 @@ spec:
         app: memelord-{{ .Release.Name }}
     spec:
       enableServiceLinks: false # Disable this to prevent injecting legacy env vars, also job for Kyverno
-      securityContext:
-        runAsUser: 33
-        runAsGroup: 33
-        fsGroup: 33
-        fsGroupChangePolicy: OnRootMismatch
+
       containers:
         - name: memelord
           image: codemowers/memelord:latest
-          securityContext:
-            readOnlyRootFilesystem: false
           ports:
             - containerPort: 8000
           volumeMounts:
