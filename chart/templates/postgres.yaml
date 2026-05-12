@@ -26,8 +26,7 @@ spec:
     storageClass: postgres
   affinity: # These should be enforced/mutated by Kyverno
     podAntiAffinityType: required
-    nodeSelector:
-      codemowers.io/lvm-ubuntu-vg: enterprise-ssd
+    topologyKey: topology.kubernetes.io/zone
   monitoring:
     enablePodMonitor: true
   resources:
