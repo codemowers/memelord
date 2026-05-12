@@ -14,6 +14,9 @@ kind: Dragonfly
 metadata:
   name: memelord-{{ .Release.Name }}-redis
 spec:
+  args:
+  - '--bind=::'
+  - '--admin_bind=::'
   authentication:
     passwordFromSecret:
       name: memelord-{{ .Release.Name }}-redis
