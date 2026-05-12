@@ -154,8 +154,11 @@ metadata:
   name: memelord-{{ .Release.Name }}
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
 spec:
+  tls:
+  - hosts:
+    - {{ .Values.hostname }}.{{ .Values.domain }}
+    secretName: memelord-{{ .Release.Name }}-tls
   rules:
   - host: {{ .Values.hostname }}.{{ .Values.domain }}
     http:
