@@ -8,5 +8,5 @@ spec:
   dnsNames:
     - {{ .Values.hostname }}.{{ .Values.domain }}
   issuerRef:
-    name: {{ .Values.certificate.issuerName }}
-    kind: {{ .Values.certificate.issuerKind }}
+    name: letsencrypt
+    kind: ClusterIssuer
